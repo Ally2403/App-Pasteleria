@@ -1,0 +1,52 @@
+/* LoadingSpinner.css */
+.spinner-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.spinner {
+  border-radius: 50%;
+  border: 3px solid var(--color-rose-200);
+  border-top-color: var(--color-primary);
+  animation: spin 0.7s linear infinite;
+}
+
+.spinner-sm .spinner { width: 20px; height: 20px; }
+.spinner-md .spinner { width: 32px; height: 32px; }
+.spinner-lg .spinner { width: 48px; height: 48px; border-width: 4px; }
+
+.spinner-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* ── Page Loader ── */
+.page-loader {
+  position: fixed;
+  inset: 0;
+  background: var(--color-warm-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.page-loader-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.page-loader-emoji {
+  font-size: 3rem;
+  animation: bounce 1s ease infinite;
+}
+
+.page-loader-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-semibold);
+}

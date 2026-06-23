@@ -1,0 +1,19 @@
+/* Badge.css */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.badge-rose    { background: var(--color-rose-100);    color: var(--color-rose-600); }
+.badge-success { background: var(--color-success-bg);  color: var(--color-success); }
+.badge-warning { background: var(--color-warning-bg);  color: var(--color-warning); }
+.badge-error   { background: var(--color-error-bg);    color: var(--color-error); }
+.badge-info    { background: var(--color-info-bg);     color: var(--color-info); }
+.badge-neutral { background: var(--color-warm-100);    color: var(--color-warm-500); }

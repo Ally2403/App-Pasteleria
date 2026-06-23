@@ -1,0 +1,284 @@
+/* DashboardPage.css */
+
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.dashboard-welcome {
+  background: linear-gradient(135deg, var(--color-rose-100) 0%, var(--color-peach-100) 100%);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  border: 1px solid var(--color-rose-200);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.dashboard-welcome-left h1 {
+  margin: 0 0 var(--space-1);
+  color: var(--color-warm-700);
+  font-size: var(--font-size-3xl);
+}
+
+.dashboard-welcome-left p {
+  color: var(--color-warm-600);
+  font-size: var(--font-size-base);
+}
+
+.dashboard-welcome-icon {
+  font-size: 3.5rem;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+}
+
+.dashboard-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-6);
+}
+
+@media (max-width: 1024px) {
+  .dashboard-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.recent-logs-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.recent-log-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.recent-log-item:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-rose-300);
+}
+
+.recent-log-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.recent-log-recipe-name {
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.recent-log-date {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.recent-log-units {
+  text-align: right;
+}
+
+.recent-log-units-qty {
+  font-weight: var(--font-weight-extrabold);
+  color: var(--color-primary);
+}
+
+.recent-log-units-lbl {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.dashboard-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.action-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: transform var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.action-card:hover {
+  transform: translateX(4px);
+  border-color: var(--color-rose-300);
+  background-color: var(--color-rose-50);
+}
+
+.action-card-icon {
+  font-size: 2rem;
+  background: var(--color-warm-50);
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-rose-100);
+}
+
+.action-card-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.action-card-title {
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.action-card-desc {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+/* Jhon's Dashboard Receta Card */
+.partner-recipe-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-3);
+  transition: border-color var(--transition-fast);
+}
+
+.partner-recipe-card:hover {
+  border-color: var(--color-rose-300);
+}
+
+.partner-recipe-name {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-1);
+}
+
+.partner-recipe-batch-info {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.partner-recipe-profit-block {
+  text-align: right;
+}
+
+.partner-recipe-profit-val {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--color-primary);
+}
+
+.partner-recipe-profit-lbl {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+/* Nuevos estilos agregados para las novedades de ventas y periodos */
+.period-selector-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  background: var(--color-surface);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-light);
+  width: fit-content;
+}
+
+.period-selector-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+
+.period-buttons {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.period-btn {
+  background: var(--color-rose-50);
+  border: 1px solid var(--color-rose-100);
+  color: var(--color-rose-700);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.period-btn:hover {
+  background: var(--color-rose-100);
+}
+
+.period-btn.active {
+  background: var(--color-rose-500);
+  color: white;
+  border-color: var(--color-rose-500);
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--space-2);
+}
+
+.dashboard-table th {
+  text-align: left;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  border-bottom: 2px solid var(--color-border-light);
+}
+
+.dashboard-table td {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.dashboard-table tr:hover td {
+  background: var(--color-rose-50) / 0.3;
+}
+
+.low-stock-list {
+  display: flex;
+  flex-direction: column;
+}
+

@@ -1,0 +1,125 @@
+/* ====================================================
+   DESIGN TOKENS — Pastelería App
+   Paleta rosada suave y delicada para Cecilia 🎂
+   ==================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  /* ── Colores Primarios ── */
+  --color-rose-50:  #FFF0F3;
+  --color-rose-100: #FFE0E8;
+  --color-rose-200: #FFC6D5;
+  --color-rose-300: #FFA0B8;
+  --color-rose-400: #F9759A;
+  --color-rose-500: #F0507C;
+  --color-rose-600: #DD2F5C;
+  --color-rose-700: #BA1F48;
+
+  /* ── Colores de Acento / Durazno ── */
+  --color-peach-50:  #FFF5EE;
+  --color-peach-100: #FFE8D5;
+  --color-peach-200: #FFD0AB;
+  --color-peach-300: #FFB07A;
+  --color-peach-400: #FF8C47;
+  --color-peach-500: #F06C20;
+
+  /* ── Neutrales Cálidos ── */
+  --color-warm-white: #FFFAF9;
+  --color-warm-50:    #FFF5F5;
+  --color-warm-100:   #FDE8EA;
+  --color-warm-200:   #F5D0D4;
+  --color-warm-300:   #E8B0B8;
+  --color-warm-400:   #C47A85;
+  --color-warm-500:   #9A4F5C;
+  --color-warm-600:   #72303C;
+  --color-warm-700:   #4A1820;
+
+  /* ── Semánticos ── */
+  --color-success:     #4CAF7D;
+  --color-success-bg:  #E8F8EF;
+  --color-warning:     #F59E0B;
+  --color-warning-bg:  #FEF3C7;
+  --color-error:       #EF4444;
+  --color-error-bg:    #FEE2E2;
+  --color-info:        #3B82F6;
+  --color-info-bg:     #EFF6FF;
+
+  /* ── Tokens de UI ── */
+  --color-bg:           var(--color-warm-white);
+  --color-bg-secondary: var(--color-rose-50);
+  --color-surface:      #FFFFFF;
+  --color-surface-hover: var(--color-rose-50);
+  --color-border:       var(--color-rose-200);
+  --color-border-light: var(--color-rose-100);
+
+  --color-text-primary:   var(--color-warm-700);
+  --color-text-secondary: var(--color-warm-500);
+  --color-text-muted:     var(--color-warm-400);
+  --color-text-inverse:   #FFFFFF;
+
+  --color-primary:       var(--color-rose-500);
+  --color-primary-hover: var(--color-rose-600);
+  --color-primary-light: var(--color-rose-100);
+
+  /* ── Tipografía ── */
+  --font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  --font-size-xs:   0.75rem;   /* 12px */
+  --font-size-sm:   0.875rem;  /* 14px */
+  --font-size-base: 1rem;      /* 16px */
+  --font-size-lg:   1.125rem;  /* 18px */
+  --font-size-xl:   1.25rem;   /* 20px */
+  --font-size-2xl:  1.5rem;    /* 24px */
+  --font-size-3xl:  1.875rem;  /* 30px */
+  --font-size-4xl:  2.25rem;   /* 36px */
+
+  --font-weight-light:    300;
+  --font-weight-regular:  400;
+  --font-weight-medium:   500;
+  --font-weight-semibold: 600;
+  --font-weight-bold:     700;
+  --font-weight-extrabold:800;
+
+  --line-height-tight:  1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed:1.75;
+
+  /* ── Espaciado ── */
+  --space-1:  0.25rem;  /* 4px */
+  --space-2:  0.5rem;   /* 8px */
+  --space-3:  0.75rem;  /* 12px */
+  --space-4:  1rem;     /* 16px */
+  --space-5:  1.25rem;  /* 20px */
+  --space-6:  1.5rem;   /* 24px */
+  --space-8:  2rem;     /* 32px */
+  --space-10: 2.5rem;   /* 40px */
+  --space-12: 3rem;     /* 48px */
+  --space-16: 4rem;     /* 64px */
+  --space-20: 5rem;     /* 80px */
+
+  /* ── Bordes ── */
+  --radius-sm:   0.375rem;  /* 6px */
+  --radius-md:   0.75rem;   /* 12px */
+  --radius-lg:   1rem;      /* 16px */
+  --radius-xl:   1.5rem;    /* 24px */
+  --radius-2xl:  2rem;      /* 32px */
+  --radius-full: 9999px;
+
+  /* ── Sombras ── */
+  --shadow-xs: 0 1px 2px rgba(240, 80, 124, 0.06);
+  --shadow-sm: 0 2px 8px rgba(240, 80, 124, 0.08);
+  --shadow-md: 0 4px 16px rgba(240, 80, 124, 0.12);
+  --shadow-lg: 0 8px 32px rgba(240, 80, 124, 0.16);
+  --shadow-xl: 0 16px 48px rgba(240, 80, 124, 0.20);
+
+  /* ── Transiciones ── */
+  --transition-fast:   150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow:   400ms ease;
+
+  /* ── Layout ── */
+  --sidebar-width:     240px;
+  --navbar-height:     64px;
+  --content-max-width: 1100px;
+}

@@ -1,0 +1,80 @@
+/* Card.css */
+.card {
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-border-light);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition:
+    box-shadow var(--transition-normal),
+    transform var(--transition-normal);
+}
+
+.card-hoverable:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.card-header {
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--color-border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.card-header h3,
+.card-header h4 {
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.card-body {
+  padding: var(--space-5) var(--space-6);
+}
+
+.card-footer {
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--color-border-light);
+  background: var(--color-rose-50);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* ── Variante: stat (para métricas/totales) ── */
+.card-stat {
+  background: linear-gradient(135deg, var(--color-rose-50), var(--color-peach-50));
+  border-color: var(--color-rose-200);
+  text-align: center;
+  padding: var(--space-5);
+}
+
+.card-stat .stat-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-2);
+}
+
+.card-stat .stat-value {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+.card-stat .stat-sub {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-top: var(--space-1);
+}
+
+/* ── Variante: highlighted (fondo rosado suave) ── */
+.card-highlighted {
+  background: linear-gradient(135deg, var(--color-rose-50) 0%, #FFFFFF 100%);
+  border-color: var(--color-rose-200);
+}

@@ -1,0 +1,63 @@
+.extra-costs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.extra-cost-card-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4) !important;
+}
+
+.extra-cost-main-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.extra-cost-icon {
+  font-size: var(--font-size-2xl);
+  background: var(--color-rose-50);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.extra-cost-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.extra-cost-name {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+}
+
+.extra-cost-price {
+  font-size: var(--font-size-sm);
+  color: var(--color-rose-600);
+  font-weight: var(--font-weight-bold);
+}
+
+.extra-cost-actions {
+  display: flex;
+  gap: 2px;
+}
+
+.extra-cost-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.extra-cost-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
