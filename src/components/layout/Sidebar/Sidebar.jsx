@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { PERMISSIONS } from '../../../utils/permissions';
 import './Sidebar.css';
@@ -38,7 +38,16 @@ const NAV_ITEMS = [
   },
 ];
 
-// ── Componente ────────────────────────────────────────────────────────────────
+// ── Accesos rápidos en barra inferior móvil (los 5 más usados) ────────────────
+const BOTTOM_NAV_ITEMS = [
+  { to: '/',          icon: '🏠', label: 'Inicio' },
+  { to: '/ventas',    icon: '💰', label: 'Ventas' },
+  { to: '/produccion',icon: '🥣', label: 'Producir' },
+  { to: '/compras',   icon: '🛒', label: 'Compras' },
+  { to: '/balance',   icon: '📊', label: 'Balance' },
+];
+
+// ── Componente Sidebar ────────────────────────────────────────────────────────
 export default function Sidebar({ isOpen, onClose }) {
   const { profile, hasPermission, signOut } = useAuth();
   const navigate = useNavigate();
@@ -143,3 +152,32 @@ export function MobileNavbar({ onMenuOpen }) {
     </header>
   );
 }
+
+/**
+ * Barra de navegación inferior fija para móvil — accesos rápidos.
+ */
+export function MobileBottomNav() {
+  const location = useLocation();
+  return (
+    <nav className="mobile-bottom-nav">
+      {BOTTOM_NAV_ITEMS.map((item) => {
+        const isActive = item.to === '/'
+          ? location.pathname === '/'
+          : location.pathname.startsWith(item.to);
+        return (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.to === '/'}
+            className={`mobile-nav-btn ${isActive ? 'active' : ''}`}
+            style={{ textDecoration: 'none' }}
+          >
+            <span className="nav-icon">{item.icon}</span>
+            {item.label}
+          </NavLink>
+        );
+      })}
+    </nav>
+  );
+}
+

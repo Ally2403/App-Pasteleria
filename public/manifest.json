@@ -1,5 +1,5 @@
 {
-  "short_name": "Pastelería Mami",
+  "short_name": "Pastelería",
   "name": "Pastelería Mami - Gestión e Inventario",
   "icons": [
     {
@@ -16,8 +16,12 @@
     }
   ],
   "start_url": "/",
+  "scope": "/",
   "background_color": "#FFFAF9",
   "theme_color": "#F0507C",
   "display": "standalone",
-  "orientation": "portrait"
+  "orientation": "portrait",
+  "lang": "es",
+  "description": "Gestión de inventario, producción y ventas para Mi Pastelería",
+  "categories": ["business", "productivity"]
 }

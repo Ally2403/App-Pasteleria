@@ -226,6 +226,8 @@
     background: #f9f9f9 !important;
     border-left: 3px solid #000 !important;
   }
+}
+
 /* Estilos del Modal de Registro de Compras */
 .shopping-modal-content {
   display: flex;
@@ -323,14 +325,53 @@
 }
 
 @media (max-width: 768px) {
+  .shopping-container {
+    gap: var(--space-4) !important;
+  }
+
+  .shopping-providers-grid {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-3) !important;
+  }
+
+  .shopping-recipe-select-card {
+    padding: var(--space-3) !important;
+  }
+
+  .shopping-form-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  .shopping-form-title {
+    font-size: var(--font-size-base) !important;
+  }
+
+  .shopping-batch-control {
+    margin-left: 0 !important;
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  .shopping-actions-row {
+    flex-direction: column !important;
+    gap: var(--space-2) !important;
+  }
+
+  .shopping-actions-row button,
+  .shopping-actions-row a {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
   .purchase-list-header {
-    grid-template-columns: 40px 1.5fr 1fr;
+    grid-template-columns: 36px 1.5fr 1fr;
   }
   .purchase-row-provider {
     display: none;
   }
   .purchase-list-row {
-    grid-template-columns: 40px 1.5fr 1fr;
+    grid-template-columns: 36px 1.5fr 1fr;
   }
   .extra-form-grid {
     flex-direction: column;

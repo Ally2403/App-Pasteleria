@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Outlet, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/layout/ProtectedRoute';
-import Sidebar, { MobileNavbar } from './components/layout/Sidebar/Sidebar';
+import Sidebar, { MobileNavbar, MobileBottomNav } from './components/layout/Sidebar/Sidebar';
 import { PERMISSIONS } from './utils/permissions';
 
 // Importar Páginas
@@ -35,6 +35,8 @@ function AppLayout() {
         
         {/* Aquí se renderizan las sub-rutas */}
         <Outlet />
+        {/* Barra de navegación inferior — solo visible en móvil */}
+        <MobileBottomNav />
       </div>
     </div>
   );
