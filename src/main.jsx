@@ -21,6 +21,8 @@ import './pages/ProvidersPage/ProvidersPage.css'
 import './pages/ShoppingPage/ShoppingPage.css'
 import './pages/ExtraCostsPage/ExtraCostsPage.css'
 import './pages/ProfilePage/ProfilePage.css'
+import './styles/animations.css'
+import './App.css'
 
 import App from './App.jsx'
 
