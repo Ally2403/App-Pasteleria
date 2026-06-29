@@ -338,5 +338,212 @@ p  { line-height: var(--line-height-relaxed); }
   width: 100% !important;
 }
 
+/* ── Balance Summary Card and Metric Boxes ── */
+.balance-summary-card {
+  background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-rose-50) 100%) !important;
+  border: 1px solid var(--color-rose-200) !important;
+  border-radius: var(--radius-xl) !important;
+  padding: var(--space-6) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+.balance-header-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: var(--space-5) !important;
+  flex-wrap: wrap !important;
+  gap: var(--space-4) !important;
+}
+
+.balance-title-area h2 {
+  color: var(--color-text-primary) !important;
+  font-size: var(--font-size-2xl) !important;
+  margin-bottom: 2px !important;
+}
+
+.balance-title-area p {
+  color: var(--color-text-muted) !important;
+  font-size: var(--font-size-sm) !important;
+}
+
+.balance-period-selector {
+  display: flex !important;
+  align-items: center !important;
+  gap: var(--space-2) !important;
+}
+
+.balance-metric-box {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border-light) !important;
+  border-radius: var(--radius-lg) !important;
+  padding: var(--space-5) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: var(--space-1) !important;
+  box-shadow: var(--shadow-xs) !important;
+  transition: transform var(--transition-fast) !important;
+}
+
+.balance-metric-box:hover {
+  transform: translateY(-2px) !important;
+}
+
+.balance-metric-box.income {
+  border-left: 4px solid var(--color-success) !important;
+}
+
+.balance-metric-box.income .balance-metric-value {
+  color: var(--color-success) !important;
+}
+
+.balance-metric-box.expense {
+  border-left: 4px solid var(--color-error) !important;
+}
+
+.balance-metric-box.expense .balance-metric-value {
+  color: var(--color-error) !important;
+}
+
+.balance-metric-box.profit {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%) !important;
+  border: 1px solid #bbf7d0 !important;
+  border-left: 4px solid #16a34a !important;
+}
+
+.balance-metric-box.profit .balance-metric-value {
+  color: #16a34a !important;
+}
+
+.balance-metric-box.loss {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%) !important;
+  border: 1px solid #fecaca !important;
+  border-left: 4px solid #dc2626 !important;
+}
+
+.balance-metric-box.loss .balance-metric-value {
+  color: #dc2626 !important;
+}
+
+.balance-metric-label {
+  font-size: var(--font-size-xs) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em;
+  font-weight: var(--font-weight-bold) !important;
+  color: var(--color-text-muted) !important;
+}
+
+.balance-metric-value {
+  font-size: var(--font-size-2xl) !important;
+  font-weight: var(--font-weight-extrabold) !important;
+}
+
+.balance-metric-sub {
+  font-size: var(--font-size-xs) !important;
+  color: var(--color-text-muted) !important;
+}
+
+/* ── Expenses Breakdown Section ── */
+.expenses-breakdown-section {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border-light) !important;
+  border-radius: var(--radius-xl) !important;
+  padding: var(--space-5) !important;
+  box-shadow: var(--shadow-xs) !important;
+}
+
+.expenses-breakdown-section h3 {
+  color: var(--color-text-primary) !important;
+  margin-bottom: var(--space-4) !important;
+  font-size: var(--font-size-lg) !important;
+  border-bottom: 1px solid var(--color-border-light) !important;
+  padding-bottom: var(--space-2) !important;
+}
+
+.expense-breakdown-box {
+  background: var(--color-warm-50) !important;
+  border: 1px dashed var(--color-border) !important;
+  border-radius: var(--radius-md) !important;
+  padding: var(--space-4) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+
+.expense-breakdown-title {
+  font-size: var(--font-size-xs) !important;
+  font-weight: var(--font-weight-bold) !important;
+  color: var(--color-text-secondary) !important;
+  text-transform: uppercase !important;
+}
+
+.expense-breakdown-val {
+  font-size: var(--font-size-lg) !important;
+  font-weight: var(--font-weight-extrabold) !important;
+  color: var(--color-text-primary) !important;
+}
+
+/* ── Purchases Table ── */
+.purchases-table-wrapper {
+  overflow-x: auto !important;
+  border: 1px solid var(--color-border-light) !important;
+  border-radius: var(--radius-lg) !important;
+}
+
+.purchases-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+}
+
+.purchases-table th {
+  background: var(--color-rose-50) !important;
+  color: var(--color-text-secondary) !important;
+  font-weight: var(--font-weight-bold) !important;
+  font-size: var(--font-size-xs) !important;
+  text-transform: uppercase !important;
+  text-align: left !important;
+  padding: var(--space-3) var(--space-4) !important;
+  border-bottom: 1px solid var(--color-border-light) !important;
+}
+
+.purchases-table td {
+  padding: var(--space-3) var(--space-4) !important;
+  font-size: var(--font-size-sm) !important;
+  color: var(--color-text-primary) !important;
+  border-bottom: 1px solid var(--color-border-light) !important;
+  vertical-align: middle !important;
+}
+
+.purchases-table tr:hover td {
+  background: var(--color-warm-50) !important;
+}
+
+.purchase-cat-badge {
+  font-size: var(--font-size-xs) !important;
+  font-weight: var(--font-weight-semibold) !important;
+  padding: 2px 8px !important;
+  border-radius: var(--radius-full) !important;
+  display: inline-block !important;
+}
+
+.cat-equipamiento { background: #ede9fe !important; color: #5b21b6 !important; }
+.cat-servicios { background: #e0f2fe !important; color: #0369a1 !important; }
+.cat-publicidad { background: #fef3c7 !important; color: #b45309 !important; }
+.cat-otros { background: #e2e8f0 !important; color: #475569 !important; }
+
+.purchase-actions-btn {
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  padding: var(--space-1) !important;
+  border-radius: var(--radius-sm) !important;
+  transition: background var(--transition-fast) !important;
+}
+
+.purchase-actions-btn:hover {
+  background: var(--color-rose-100) !important;
+}
+
+
 
 
