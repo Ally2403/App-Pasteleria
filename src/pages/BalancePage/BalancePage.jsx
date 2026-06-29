@@ -147,18 +147,14 @@ export default function BalancePage() {
       });
 
       // C. Costos de plantillas / empaques aplicados en ventas entregadas del mes
+      // 1. Obtener items de ventas completadas del mes
       const { data: salesItemsData, error: salesItemsError } = await supabase
         .from('sales')
         .select(`
           id,
           sale_items (
             quantity,
-            recipes (
-              recipe_extra_costs (
-                quantity_used,
-                extra_cost_items (price, quantity_sold)
-              )
-            )
+            recipe_id
           )
         `)
         .gte('sale_date', startDate)
@@ -167,16 +163,53 @@ export default function BalancePage() {
 
       if (salesItemsError) throw salesItemsError;
 
+      // 2. Obtener la tabla de asociación de costos extras de recetas
+      const { data: recipeExtraCostsData, error: recCostsError } = await supabase
+        .from('recipe_extra_costs')
+        .select('recipe_id, extra_cost_item_id, quantity_used');
+
+      if (recCostsError) throw recCostsError;
+
+      // 3. Obtener el catálogo de costos extras de Supabase
+      const { data: extraCostItemsData, error: itemsError } = await supabase
+        .from('extra_cost_items')
+        .select('id, price, quantity_sold');
+
+      if (itemsError) throw itemsError;
+
+      // Crear mapa de plantilla_id -> precio_unitario
+      const templateUnitPriceMap = {};
+      extraCostItemsData.forEach(item => {
+        const price = item.price || 0;
+        const qtySold = item.quantity_sold || 1;
+        templateUnitPriceMap[item.id] = price / qtySold;
+      });
+
+      // Crear mapa de receta_id -> lista de costos [ { quantity_used, unit_cost } ]
+      const recipeCostsMap = {};
+      recipeExtraCostsData.forEach(recCost => {
+        const recipeId = recCost.recipe_id;
+        const unitCost = templateUnitPriceMap[recCost.extra_cost_item_id] || 0;
+        
+        if (!recipeCostsMap[recipeId]) {
+          recipeCostsMap[recipeId] = [];
+        }
+        recipeCostsMap[recipeId].push({
+          quantityUsed: recCost.quantity_used || 0,
+          unitCost
+        });
+      });
+
+      // 4. Calcular el total de costos de plantillas aplicadas a las ventas
       let totalTemplatesCost = 0;
       salesItemsData.forEach(sale => {
         (sale.sale_items || []).forEach(item => {
           const qty = item.quantity || 0;
-          (item.recipes?.recipe_extra_costs || []).forEach(recCost => {
-            const used = recCost.quantity_used || 0;
-            const itemPrice = recCost.extra_cost_items?.price || 0;
-            const packageQty = recCost.extra_cost_items?.quantity_sold || 1;
-            const unitCost = itemPrice / packageQty;
-            totalTemplatesCost += (unitCost * used) * qty;
+          const recipeId = item.recipe_id;
+          const costs = recipeCostsMap[recipeId] || [];
+          
+          costs.forEach(c => {
+            totalTemplatesCost += (c.quantityUsed * c.unitCost) * qty;
           });
         });
       });
