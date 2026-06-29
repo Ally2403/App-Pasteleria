@@ -393,7 +393,8 @@ function RecipeDetail({ recipe, onBack, onDelete, onEdit, onRoundedPriceUpdate, 
           <Card>
             <CardHeader><h3>🥣 Ingredientes</h3></CardHeader>
             <CardBody style={{ padding: 0 }}>
-              <table className="recipe-ingredients-table">
+              <div className="table-responsive">
+              <table className="dashboard-table">
                 <thead>
                   <tr>
                     <th>Ingrediente</th>
@@ -436,6 +437,7 @@ function RecipeDetail({ recipe, onBack, onDelete, onEdit, onRoundedPriceUpdate, 
                   ))}
                 </tbody>
               </table>
+              </div>
             </CardBody>
           </Card>
         )}

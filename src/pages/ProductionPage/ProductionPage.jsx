@@ -374,8 +374,8 @@ export default function ProductionPage() {
               No hay registros de producción anteriores.
             </div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table className="history-table">
+            <div className="table-responsive">
+              <table className="dashboard-table">
                 <thead>
                   <tr>
                     <th>Fecha y hora</th>
