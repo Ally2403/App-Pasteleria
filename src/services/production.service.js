@@ -32,10 +32,65 @@ export async function registerProduction({ recipeId, unitsProduced, actualIngred
 
   if (error) throw error;
 
-  // 2. Descontar del inventario
+  // 2. Descontar ingredientes del inventario
   await deductFromInventory(actualIngredients);
 
-  // 3. Agregar al stock de productos terminados
+  // 3. Descontar empaques físicos del inventario
+  try {
+    // Obtener unidades por tanda de la receta
+    const { data: recipe, error: recipeErr } = await supabase
+      .from('recipes')
+      .select('units_per_batch')
+      .eq('id', recipeId)
+      .single();
+
+    if (!recipeErr && recipe) {
+      const unitsPerBatch = parseFloat(recipe.units_per_batch) || 1;
+      const batches = unitsProduced / unitsPerBatch;
+
+      // Obtener costos extras asociados a la receta
+      const { data: recCosts, error: recCostsErr } = await supabase
+        .from('recipe_extra_costs')
+        .from('recipe_extra_costs')
+        .select('name, type, quantity')
+        .eq('recipe_id', recipeId);
+
+      if (!recCostsErr && recCosts) {
+        // Filtrar solo los empaques/packaging
+        const packagingCosts = recCosts.filter(rc => rc.type === 'packaging');
+        if (packagingCosts.length > 0) {
+          // Obtener todos los extra_cost_items con inventario habilitado
+          const { data: extraItems } = await supabase
+            .from('extra_cost_items')
+            .select('id, name')
+            .eq('has_inventory', true);
+
+          if (extraItems) {
+            const deductItems = [];
+            packagingCosts.forEach(pc => {
+              // Buscar coincidencia por nombre (case-insensitive)
+              const matchedItem = extraItems.find(ei => ei.name.toLowerCase().trim() === pc.name.toLowerCase().trim());
+              if (matchedItem) {
+                deductItems.push({
+                  extraCostItemId: matchedItem.id,
+                  quantityUsed: (parseFloat(pc.quantity) || 0) * batches
+                });
+              }
+            });
+            
+            if (deductItems.length > 0) {
+              const { deductExtraCostsFromInventory } = await import('./extra_costs.service');
+              await deductExtraCostsFromInventory(deductItems);
+            }
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error al descontar empaques del inventario:', err);
+  }
+
+  // 4. Agregar al stock de productos terminados
   try {
     const { data: { user } } = await supabase.auth.getUser();
     await addProductStock(recipeId, unitsProduced, user?.id);
@@ -87,6 +142,55 @@ export async function deleteProduction(logId) {
   // 2. Devolver los ingredientes gastados al inventario
   if (log.actual_ingredients && log.actual_ingredients.length > 0) {
     await addToInventory(log.actual_ingredients);
+  }
+
+  // 2.5. Devolver los empaques gastados al inventario
+  try {
+    const { data: recipe, error: recipeErr } = await supabase
+      .from('recipes')
+      .select('units_per_batch')
+      .eq('id', log.recipe_id)
+      .single();
+
+    if (!recipeErr && recipe) {
+      const unitsPerBatch = parseFloat(recipe.units_per_batch) || 1;
+      const batches = log.units_produced / unitsPerBatch;
+
+      const { data: recCosts, error: recCostsErr } = await supabase
+        .from('recipe_extra_costs')
+        .select('name, type, quantity')
+        .eq('recipe_id', log.recipe_id);
+
+      if (!recCostsErr && recCosts) {
+        const packagingCosts = recCosts.filter(rc => rc.type === 'packaging');
+        if (packagingCosts.length > 0) {
+          const { data: extraItems } = await supabase
+            .from('extra_cost_items')
+            .select('id, name')
+            .eq('has_inventory', true);
+
+          if (extraItems) {
+            const addItems = [];
+            packagingCosts.forEach(pc => {
+              const matchedItem = extraItems.find(ei => ei.name.toLowerCase().trim() === pc.name.toLowerCase().trim());
+              if (matchedItem) {
+                addItems.push({
+                  extraCostItemId: matchedItem.id,
+                  quantityUsed: (parseFloat(pc.quantity) || 0) * batches
+                });
+              }
+            });
+
+            if (addItems.length > 0) {
+              const { addExtraCostsToInventory } = await import('./extra_costs.service');
+              await addExtraCostsToInventory(addItems);
+            }
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error al revertir empaques del inventario:', err);
   }
 
   // 3. Descontar del stock de productos terminados

@@ -113,99 +113,45 @@ export default function BalancePage() {
         totalIncome += sale.is_paid ? (sale.total || 0) : 0;
       });
 
-      // B. Costos de producción de recetas del mes (ingredientes descontados en registros de producción)
-      const { data: prodData, error: prodError } = await supabase
-        .from('production_logs')
-        .select('id, date, actual_ingredients')
-        .gte('date', startDate)
-        .lt('date', limitDate);
+      // B. Egresos Reales por compras registradas en el mes (ingredientes y empaques)
+      const { data: purchasesData, error: purchasesError } = await supabase
+        .from('ingredient_purchases')
+        .select('total_spent, category, purchase_date')
+        .gte('purchase_date', startDate)
+        .lte('purchase_date', endDate);
 
-      if (prodError) throw prodError;
+      if (purchasesError) throw purchasesError;
 
-      // Obtener los precios unitarios actuales de los ingredientes para valuar el costo
-      const { data: ingredientsData, error: ingError } = await supabase
-        .from('ingredients')
-        .select('id, unit_price');
+      let totalIngredientsSpent = 0;
+      let totalPackagingSpent = 0;
 
-      if (ingError) throw ingError;
-
-      // Crear mapa rápido de id_ingrediente -> unit_price
-      const ingredientPriceMap = {};
-      ingredientsData.forEach(ing => {
-        ingredientPriceMap[ing.id] = ing.unit_price || 0;
+      purchasesData.forEach(p => {
+        if (p.category === 'packaging') {
+          totalPackagingSpent += parseFloat(p.total_spent) || 0;
+        } else {
+          totalIngredientsSpent += parseFloat(p.total_spent) || 0;
+        }
       });
 
-      let totalProductionCost = 0;
-      prodData.forEach(log => {
-        const actualIngredients = log.actual_ingredients || [];
-        actualIngredients.forEach(item => {
-          const unitPrice = ingredientPriceMap[item.ingredientId] || 0;
-          totalProductionCost += (item.quantityUsed * unitPrice);
-        });
-      });
-
-      // C. Costos de plantillas / empaques aplicados en ventas del mes
-      // La tabla recipe_extra_costs tiene: recipe_id, total (costo total del extra por receta)
-      // 1. Obtener items de ventas completadas del mes con su recipe_id
-      const { data: salesItemsData, error: salesItemsError } = await supabase
-        .from('sales')
-        .select(`
-          id,
-          sale_items (
-            quantity,
-            recipe_id
-          )
-        `)
-        .gte('sale_date', startDate)
-        .lte('sale_date', endDate)
-        .eq('status', 'completed');
-
-      if (salesItemsError) throw salesItemsError;
-
-      // 2. Obtener costos extras por receta (columnas reales: recipe_id, total)
-      const { data: recipeExtraCostsData, error: recCostsError } = await supabase
-        .from('recipe_extra_costs')
-        .select('recipe_id, total');
-
-      if (recCostsError) throw recCostsError;
-
-      // Crear mapa de receta_id -> suma de todos sus costos extras
-      const recipeTotalExtrasMap = {};
-      recipeExtraCostsData.forEach(recCost => {
-        const recipeId = recCost.recipe_id;
-        recipeTotalExtrasMap[recipeId] = (recipeTotalExtrasMap[recipeId] || 0) + (recCost.total || 0);
-      });
-
-      // 3. Calcular costo de plantillas/empaques multiplicado por unidades vendidas
-      let totalTemplatesCost = 0;
-      salesItemsData.forEach(sale => {
-        (sale.sale_items || []).forEach(item => {
-          const qty = item.quantity || 0;
-          const recipeId = item.recipe_id;
-          const extraCostPerUnit = recipeTotalExtrasMap[recipeId] || 0;
-          totalTemplatesCost += extraCostPerUnit * qty;
-        });
-      });
-
-      // D. Costos no programados de la tabla other_purchases en el mes
-      let totalPurchasesCost = 0;
+      // C. Costos no programados de la tabla other_purchases en el mes
+      let totalOtherPurchasesCost = 0;
       purchasesList.forEach(p => {
         const pDate = new Date(p.purchase_date);
         const pMonth = String(pDate.getMonth() + 1).padStart(2, '0');
         const pYear = String(pDate.getFullYear());
         if (pMonth === month && pYear === year) {
-          totalPurchasesCost += (p.price * p.quantity);
+          totalOtherPurchasesCost += (p.price * p.quantity);
         }
       });
 
-      const totalExpenses = totalProductionCost + totalTemplatesCost + totalPurchasesCost;
+      const totalExpenses = totalIngredientsSpent + totalPackagingSpent + totalOtherPurchasesCost;
       const netProfit = totalIncome - totalExpenses;
 
       setBalanceMetrics({
         income: totalIncome,
-        productionCost: totalProductionCost,
-        templatesCost: totalTemplatesCost,
-        purchasesCost: totalPurchasesCost,
+        productionCost: totalIngredientsSpent, // Mapeado a Ingredientes en UI
+        templatesCost: totalPackagingSpent,     // Mapeado a Empaques en UI
+        purchasesCost: totalOtherPurchasesCost,  // Mapeado a Compras no programadas en UI
         totalExpenses,
         netProfit
       });
@@ -382,24 +328,24 @@ export default function BalancePage() {
           <h3>Gastos Desglosados</h3>
           <div className="balance-layout-expenses-breakdown-grid-custom">
             <div className="expense-breakdown-box">
-              <span className="expense-breakdown-title">🍳 Costo de Producción</span>
+              <span className="expense-breakdown-title">🛒 Compras de Ingredientes</span>
               <span className="expense-breakdown-val">{formatCurrency(balanceMetrics.productionCost)}</span>
               <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-                Ingredientes consumidos al registrar la producción.
+                Dinero gastado comprando insumos de cocina en el mes.
               </p>
             </div>
             <div className="expense-breakdown-box">
-              <span className="expense-breakdown-title">📦 Empaques y Costos Fijos</span>
+              <span className="expense-breakdown-title">📦 Compras de Empaques</span>
               <span className="expense-breakdown-val">{formatCurrency(balanceMetrics.templatesCost)}</span>
               <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-                Cajas y plantillas aplicadas a pedidos completados.
+                Dinero gastado en empaques, cajas y packaging físico.
               </p>
             </div>
             <div className="expense-breakdown-box">
-              <span className="expense-breakdown-title">🛠️ Compras Extras No Programadas</span>
+              <span className="expense-breakdown-title">🛠️ Compras No Programadas</span>
               <span className="expense-breakdown-val">{formatCurrency(balanceMetrics.purchasesCost)}</span>
               <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-                Moldes, utensilios, servicios o publicidad del mes.
+                Utensilios, moldes y gastos adicionales del negocio.
               </p>
             </div>
           </div>

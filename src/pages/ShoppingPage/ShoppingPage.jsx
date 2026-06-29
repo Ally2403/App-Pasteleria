@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { getRecipes, getRecipeById } from '../../services/recipes.service';
 import { getIngredients, addToInventory } from '../../services/ingredients.service';
+import { getExtraCostItems, updateExtraCostItem } from '../../services/extra_costs.service';
+import { getIngredientPurchases, addIngredientPurchase, deleteIngredientPurchase } from '../../services/ingredient_purchases.service';
 import { formatQuantity, formatCurrency } from '../../utils/formatters';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -15,6 +17,8 @@ export default function ShoppingPage() {
   const [selectedRecipe, setSelectedRecipe] = useState(null);
   const [batches, setBatches] = useState(1);
   const [allIngredients, setAllIngredients] = useState([]);
+  const [extraCostItems, setExtraCostItems] = useState([]);
+  const [purchasesHistory, setPurchasesHistory] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [loadingRecipe, setLoadingRecipe] = useState(false);
@@ -22,7 +26,10 @@ export default function ShoppingPage() {
 
   // Estados para Modal de Compras
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
-  const [purchaseItems, setPurchaseItems] = useState([]); // [{ id, name, unit, provider, quantityToRegister, checked, quantitySold }]
+  const [purchaseItems, setPurchaseItems] = useState([]); // [{ id, name, unit, provider, quantityToRegister, checked, quantitySold, isExtraCost }]
+  const [purchaseTotalSpent, setPurchaseTotalSpent] = useState('');
+  const [purchaseNotes, setPurchaseNotes] = useState('');
+  const [purchaseCategory, setPurchaseCategory] = useState('ingredients'); // 'ingredients' | 'packaging'
   const [extraIngredientId, setExtraIngredientId] = useState('');
   const [extraQty, setExtraQty] = useState('');
   const [savingPurchase, setSavingPurchase] = useState(false);
@@ -35,33 +42,39 @@ export default function ShoppingPage() {
     }
   }, [notification]);
 
-  // Función auxiliar para refrescar stock tras comprar
-  const refreshIngredientsOnly = async () => {
-    try {
-      const ingredientsData = await getIngredients();
-      setAllIngredients(ingredientsData);
-    } catch (err) {
-      console.error('Error al refrescar ingredientes:', err);
-    }
-  };
 
-  // Abrir el modal de registro cargando los elementos faltantes
-  const handleOpenPurchaseModal = () => {
+  // Abrir el modal de registro cargando los elementos faltantes según la categoría
+  const handleOpenPurchaseModal = (category = 'ingredients') => {
     const items = [];
     Object.keys(shoppingListByProvider).forEach((provider) => {
       shoppingListByProvider[provider].forEach((item) => {
-        items.push({
-          id: item.id,
-          name: item.name,
-          unit: item.unit,
-          provider: provider,
-          quantityToRegister: item.totalToBuy, // Sugerimos comprar el total de paquetes
-          quantitySold: item.quantitySold,
-          checked: true,
-        });
+        if ((category === 'ingredients' && !item.isExtraCost) || (category === 'packaging' && item.isExtraCost)) {
+          items.push({
+            id: item.id,
+            name: item.name,
+            unit: item.unit,
+            provider: provider,
+            quantityToRegister: item.totalToBuy,
+            quantitySold: item.quantitySold,
+            checked: true,
+            isExtraCost: item.isExtraCost,
+            packagePrice: item.packagePrice,
+            packsToBuy: item.packsToBuy
+          });
+        }
       });
     });
+
+    // Calcular el gasto total estimado
+    let estimatedTotal = 0;
+    items.forEach(item => {
+      estimatedTotal += (item.packsToBuy * item.packagePrice);
+    });
+
     setPurchaseItems(items);
+    setPurchaseTotalSpent(estimatedTotal > 0 ? String(estimatedTotal) : '');
+    setPurchaseNotes('');
+    setPurchaseCategory(category);
     setExtraIngredientId('');
     setExtraQty('');
     setIsPurchaseModalOpen(true);
@@ -69,49 +82,94 @@ export default function ShoppingPage() {
 
   // Cambiar cantidad en la lista de compras del modal
   const handlePurchaseQtyChange = (id, val) => {
-    setPurchaseItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, quantityToRegister: parseFloat(val) || 0 } : item
-      )
-    );
+    const parsedVal = parseFloat(val) || 0;
+    setPurchaseItems((prev) => {
+      const updated = prev.map((item) =>
+        item.id === id ? { ...item, quantityToRegister: parsedVal } : item
+      );
+      // Recalcular el total gastado según las cantidades ingresadas
+      let newTotal = 0;
+      updated.forEach(item => {
+        if (item.checked) {
+          const packs = item.quantitySold > 0 ? Math.ceil(item.quantityToRegister / item.quantitySold) : 1;
+          newTotal += packs * (item.packagePrice || 0);
+        }
+      });
+      setPurchaseTotalSpent(newTotal > 0 ? String(newTotal) : '');
+      return updated;
+    });
   };
 
   // Marcar/Desmarcar ingrediente en el modal
   const handlePurchaseToggle = (id) => {
-    setPurchaseItems((prev) =>
-      prev.map((item) =>
+    setPurchaseItems((prev) => {
+      const updated = prev.map((item) =>
         item.id === id ? { ...item, checked: !item.checked } : item
-      )
-    );
+      );
+      // Recalcular total gastado
+      let newTotal = 0;
+      updated.forEach(item => {
+        if (item.checked) {
+          const packs = item.quantitySold > 0 ? Math.ceil(item.quantityToRegister / item.quantitySold) : 1;
+          newTotal += packs * (item.packagePrice || 0);
+        }
+      });
+      setPurchaseTotalSpent(newTotal > 0 ? String(newTotal) : '');
+      return updated;
+    });
   };
 
   // Agregar un ingrediente extra que no estuviera originalmente en la lista
   const handleAddExtraIngredient = () => {
     if (!extraIngredientId) return;
-    const ing = allIngredients.find((a) => a.id === extraIngredientId);
-    if (!ing) return;
+    
+    let matchedItem;
+    if (purchaseCategory === 'ingredients') {
+      matchedItem = allIngredients.find((a) => a.id === extraIngredientId);
+    } else {
+      matchedItem = extraCostItems.find((a) => a.id === extraIngredientId);
+    }
+
+    if (!matchedItem) return;
 
     // Verificar si ya está en la lista del modal
-    const exists = purchaseItems.some((item) => item.id === ing.id);
+    const exists = purchaseItems.some((item) => item.id === matchedItem.id);
     if (exists) {
-      alert(`El ingrediente "${ing.name}" ya está en la lista de ingreso.`);
+      alert(`El elemento "${matchedItem.name}" ya está en la lista de ingreso.`);
       return;
     }
 
-    const qty = parseFloat(extraQty) || ing.quantity_sold || 0;
+    const qty = parseFloat(extraQty) || matchedItem.quantity_sold || 0;
+    const quantitySold = matchedItem.quantity_sold || 1;
+    const packagePrice = matchedItem.price || 0;
 
-    setPurchaseItems((prev) => [
-      ...prev,
-      {
-        id: ing.id,
-        name: ing.name,
-        unit: ing.unit,
-        provider: ing.provider || 'Sin Proveedor',
-        quantityToRegister: qty,
-        quantitySold: ing.quantity_sold,
-        checked: true,
-      },
-    ]);
+    setPurchaseItems((prev) => {
+      const updated = [
+        ...prev,
+        {
+          id: matchedItem.id,
+          name: matchedItem.name,
+          unit: matchedItem.unit || 'unid',
+          provider: matchedItem.provider || 'Sin Proveedor',
+          quantityToRegister: qty,
+          quantitySold,
+          packagePrice,
+          packsToBuy: quantitySold > 0 ? Math.ceil(qty / quantitySold) : 1,
+          checked: true,
+          isExtraCost: purchaseCategory === 'packaging'
+        },
+      ];
+
+      let newTotal = 0;
+      updated.forEach(item => {
+        if (item.checked) {
+          const packs = item.quantitySold > 0 ? Math.ceil(item.quantityToRegister / item.quantitySold) : 1;
+          newTotal += packs * (item.packagePrice || 0);
+        }
+      });
+      setPurchaseTotalSpent(newTotal > 0 ? String(newTotal) : '');
+      return updated;
+    });
 
     setExtraIngredientId('');
     setExtraQty('');
@@ -121,33 +179,81 @@ export default function ShoppingPage() {
   const handleConfirmPurchase = async () => {
     const activePurchases = purchaseItems.filter((item) => item.checked && item.quantityToRegister > 0);
     if (activePurchases.length === 0) {
-      setNotification({ message: 'Por favor selecciona al menos un ingrediente para registrar la compra.', type: 'warning' });
+      setNotification({ message: 'Por favor selecciona al menos un elemento para registrar la compra.', type: 'warning' });
+      return;
+    }
+
+    const moneySpent = parseFloat(purchaseTotalSpent);
+    if (isNaN(moneySpent) || moneySpent <= 0) {
+      setNotification({ message: 'Por favor ingresa un total de dinero gastado válido mayor a 0.', type: 'warning' });
       return;
     }
 
     setSavingPurchase(true);
-    console.log('Iniciando registro de compras con ítems:', activePurchases);
 
     try {
-      const usages = activePurchases.map((item) => ({
-        ingredientId: item.id,
-        quantityUsed: parseFloat(item.quantityToRegister) || 0,
-      }));
+      // 1. Guardar el Egreso Financiero en la base de datos
+      await addIngredientPurchase({
+        purchase_date: new Date().toISOString().split('T')[0],
+        total_spent: moneySpent,
+        category: purchaseCategory,
+        notes: purchaseNotes || `Compra automática registrada desde la lista de compras`
+      });
 
-      console.log('Enviando usages calculados a addToInventory:', usages);
-      await addToInventory(usages);
+      // 2. Incrementar el stock correspondiente en la base de datos
+      if (purchaseCategory === 'ingredients') {
+        const usages = activePurchases.map((item) => ({
+          ingredientId: item.id,
+          quantityUsed: parseFloat(item.quantityToRegister) || 0,
+        }));
+        await addToInventory(usages);
+      } else {
+        // Incrementar empaques
+        const addItems = activePurchases.map((item) => ({
+          extraCostItemId: item.id,
+          quantityUsed: parseFloat(item.quantityToRegister) || 0,
+        }));
+        const { addExtraCostsToInventory } = await import('../../services/extra_costs.service');
+        await addExtraCostsToInventory(addItems);
+      }
       
       setIsPurchaseModalOpen(false);
-      
-      console.log('Refrescando inventario en la vista...');
       await refreshIngredientsOnly();
-      
-      setNotification({ message: '¡Inventario actualizado correctamente con las compras registradas! 🎉', type: 'success' });
+      setNotification({ message: `¡Inventario y finanzas actualizados correctamente! Se registró un egreso de ${formatCurrency(moneySpent)}. 🎉`, type: 'success' });
     } catch (err) {
       console.error('Error al registrar compras:', err);
-      setNotification({ message: `Hubo un error al registrar las compras en el inventario: ${err.message || err}`, type: 'error' });
+      setNotification({ message: `Hubo un error al registrar las compras: ${err.message || err}`, type: 'error' });
     } finally {
       setSavingPurchase(false);
+    }
+  };
+
+  // Eliminar un registro de compra del historial
+  const handleDeletePurchase = async (id) => {
+    if (!window.confirm('¿Estás seguro de que quieres eliminar esta compra del historial? Esto no modificará el inventario pero sí afectará los reportes del balance de caja.')) return;
+    try {
+      await deleteIngredientPurchase(id);
+      await refreshIngredientsOnly();
+      setNotification({ message: 'Compra eliminada correctamente del historial.', type: 'success' });
+    } catch (err) {
+      console.error('Error al eliminar compra:', err);
+      setNotification({ message: 'Hubo un error al eliminar la compra.', type: 'error' });
+    }
+  };
+
+  // Función auxiliar para refrescar stock y compras tras comprar
+  const refreshIngredientsOnly = async () => {
+    try {
+      const [ingredientsData, extraCostsData, purchasesData] = await Promise.all([
+        getIngredients(),
+        getExtraCostItems(),
+        getIngredientPurchases(),
+      ]);
+      setAllIngredients(ingredientsData);
+      setExtraCostItems(extraCostsData);
+      setPurchasesHistory(purchasesData);
+    } catch (err) {
+      console.error('Error al refrescar datos:', err);
     }
   };
 
@@ -156,12 +262,16 @@ export default function ShoppingPage() {
     async function loadInitialData() {
       setLoading(true);
       try {
-        const [recipesData, ingredientsData] = await Promise.all([
+        const [recipesData, ingredientsData, extraCostsData, purchasesData] = await Promise.all([
           getRecipes(),
           getIngredients(),
+          getExtraCostItems(),
+          getIngredientPurchases(),
         ]);
         setRecipes(recipesData);
         setAllIngredients(ingredientsData);
+        setExtraCostItems(extraCostsData);
+        setPurchasesHistory(purchasesData);
       } catch (err) {
         console.error('Error al cargar datos de compras:', err);
       } finally {
@@ -200,18 +310,17 @@ export default function ShoppingPage() {
 
     const list = {};
 
+    // 1. Procesar Ingredientes
     (selectedRecipe.recipe_ingredients ?? []).forEach((ri) => {
       const ing = ri.ingredients;
       if (!ing) return;
 
-      // Buscar el ingrediente actualizado con su inventario
       const updatedIng = allIngredients.find((a) => a.id === ing.id);
       const stock = updatedIng?.inventory?.[0]?.current_stock ?? 0;
       const needed = ri.quantity_used * batches;
       const deficit = needed - stock;
 
       if (deficit > 0) {
-        // Calcular paquetes recomendados a comprar
         const quantitySold = ing.quantity_sold || 1;
         const packsToBuy = Math.ceil(deficit / quantitySold);
         const totalToBuy = packsToBuy * quantitySold;
@@ -235,13 +344,59 @@ export default function ShoppingPage() {
           packsToBuy,
           totalToBuy,
           packagePrice,
-          totalCost
+          totalCost,
+          isExtraCost: false,
+        });
+      }
+    });
+
+    // 2. Procesar Empaques / Materiales Físicos (recipe_extra_costs del tipo 'packaging')
+    (selectedRecipe.recipe_extra_costs ?? []).forEach((rc) => {
+      if (rc.type !== 'packaging') return;
+
+      // Buscar el item correspondiente en el catálogo extraCostItems
+      const matchedExtra = extraCostItems.find(
+        (ei) => ei.name.toLowerCase().trim() === rc.name.toLowerCase().trim() && ei.has_inventory
+      );
+
+      if (!matchedExtra) return;
+
+      const stock = parseFloat(matchedExtra.current_stock) || 0;
+      const needed = (parseFloat(rc.quantity) || 0) * batches;
+      const deficit = needed - stock;
+
+      if (deficit > 0) {
+        const quantitySold = parseFloat(matchedExtra.quantity_sold) || 1;
+        const packsToBuy = Math.ceil(deficit / quantitySold);
+        const totalToBuy = packsToBuy * quantitySold;
+        const providerName = matchedExtra.provider ? matchedExtra.provider.trim() : 'Sin Proveedor';
+
+        if (!list[providerName]) {
+          list[providerName] = [];
+        }
+
+        const packagePrice = parseFloat(matchedExtra.price) || 0;
+        const totalCost = packsToBuy * packagePrice;
+
+        list[providerName].push({
+          id: matchedExtra.id,
+          name: matchedExtra.name,
+          unit: 'unid',
+          stock,
+          needed,
+          deficit,
+          quantitySold,
+          packsToBuy,
+          totalToBuy,
+          packagePrice,
+          totalCost,
+          isExtraCost: true,
         });
       }
     });
 
     return list;
-  }, [selectedRecipe, batches, allIngredients]);
+  }, [selectedRecipe, batches, allIngredients, extraCostItems]);
 
   const hasShoppingItems = useMemo(() => {
     return Object.keys(shoppingListByProvider).length > 0;
@@ -306,9 +461,14 @@ export default function ShoppingPage() {
           <h1>🛒 Lista de Compras</h1>
           <p>Compara recetas con tu stock disponible y genera la lista de compras por proveedor</p>
         </div>
-        <Button variant="success" onClick={() => { setPurchaseItems([]); setExtraIngredientId(''); setExtraQty(''); setIsPurchaseModalOpen(true); }}>
-          📥 Registrar Compras Directas
-        </Button>
+        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+          <Button variant="secondary" onClick={() => handleOpenPurchaseModal('packaging')}>
+            📦 Reg. Compra de Empaques
+          </Button>
+          <Button variant="success" onClick={() => handleOpenPurchaseModal('ingredients')}>
+            📥 Reg. Compra de Ingredientes
+          </Button>
+        </div>
       </div>
 
       {notification && (
@@ -347,7 +507,7 @@ export default function ShoppingPage() {
           <div className="animate-fade-in">
             <div className="shopping-form-header">
               <span className="shopping-form-title">
-                📋 Ingredientes para: {selectedRecipe.name}
+                📋 Ingredientes y Empaques para: {selectedRecipe.name}
               </span>
               
               <div className="shopping-batch-control">
@@ -393,10 +553,10 @@ export default function ShoppingPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
                   <span style={{ fontSize: '2.2rem' }}>💰</span>
                   <div>
-                    <h3 style={{ color: '#166534', margin: 0, fontSize: 'var(--font-size-lg)' }}>Presupuesto Estimado Necesario</h3>
-                    <p style={{ color: '#14532d', margin: 0, fontSize: 'var(--font-size-sm)' }}>
-                      Total de dinero que necesitas para comprar toda esta lista.
-                    </p>
+                     <h3 style={{ color: '#166534', margin: 0, fontSize: 'var(--font-size-lg)' }}>Presupuesto Estimado Necesario</h3>
+                     <p style={{ color: '#14532d', margin: 0, fontSize: 'var(--font-size-sm)' }}>
+                       Total de dinero necesario para comprar ingredientes y empaques de esta lista.
+                     </p>
                   </div>
                 </div>
                 <div style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 'var(--font-weight-extrabold)', color: '#15803d' }}>
@@ -415,9 +575,14 @@ export default function ShoppingPage() {
                   <Button variant="primary" onClick={handleCopyList}>
                     {copySuccess ? '✓ ¡Copiado!' : '📋 Copiar para WhatsApp'}
                   </Button>
-                  <Button variant="success" onClick={handleOpenPurchaseModal}>
-                    📥 Ingresar Compras a Inventario
-                  </Button>
+                  <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                    <Button variant="secondary" onClick={() => handleOpenPurchaseModal('packaging')}>
+                      📦 Compré Empaques
+                    </Button>
+                    <Button variant="success" onClick={() => handleOpenPurchaseModal('ingredients')}>
+                      🛒 Compré Ingredientes
+                    </Button>
+                  </div>
                 </>
               )}
             </div>
@@ -430,7 +595,7 @@ export default function ShoppingPage() {
                     <div>
                       <h4 style={{ color: 'var(--color-success)', margin: 0 }}>¡Tienes todo en stock!</h4>
                       <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)', margin: 0 }}>
-                        No necesitas comprar ningún ingrediente. Tienes suficiente stock para preparar estas {batches} bandeja{batches > 1 ? 's' : ''}.
+                        No necesitas comprar nada. Tienes suficiente stock de ingredientes y empaques para preparar estas {batches} bandeja{batches > 1 ? 's' : ''}.
                       </p>
                     </div>
                   </div>
@@ -469,8 +634,8 @@ export default function ShoppingPage() {
                             alignItems: 'center'
                           }}>
                             <div>
-                              <div style={{ fontWeight: 'bold', color: 'var(--color-text-primary)', fontSize: 'var(--font-size-base)' }}>
-                                {item.name}
+                              <div style={{ fontWeight: 'bold', color: 'var(--color-text-primary)', fontSize: 'var(--font-size-base)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                {item.isExtraCost ? '📦' : '🥣'} {item.name}
                               </div>
                               <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-success)', fontWeight: 'bold', marginTop: '2px' }}>
                                 🛒 Compra: {item.packsToBuy} paquete{item.packsToBuy > 1 ? 's' : ''} de {formatQuantity(item.quantitySold, item.unit)}
@@ -499,11 +664,65 @@ export default function ShoppingPage() {
         )}
       </div>
 
+      {/* Historial de Compras de Ingredientes y Empaques */}
+      <Card style={{ marginTop: 'var(--space-6)' }}>
+        <CardHeader>
+          <h3>📋 Historial de Compras (Egresos Registrados)</h3>
+        </CardHeader>
+        <CardBody style={{ padding: 0 }}>
+          {purchasesHistory.length === 0 ? (
+            <div style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+              No hay compras registradas en el historial.
+            </div>
+          ) : (
+            <div className="table-responsive">
+              <table className="dashboard-table">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Categoría</th>
+                    <th>Dinero Gastado</th>
+                    <th>Detalles / Notas</th>
+                    <th style={{ textAlign: 'center' }}>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {purchasesHistory.map((p) => (
+                    <tr key={p.id}>
+                      <td style={{ fontWeight: 'bold' }}>{p.purchase_date}</td>
+                      <td>
+                        <span className={`purchase-cat-badge ${p.category === 'packaging' ? 'cat-equipamiento' : 'cat-servicios'}`}>
+                          {p.category === 'packaging' ? '📦 Empaques' : '🛒 Ingredientes'}
+                        </span>
+                      </td>
+                      <td style={{ fontWeight: 'bold', color: 'var(--color-error)' }}>
+                        {formatCurrency(p.total_spent)}
+                      </td>
+                      <td>{p.notes || '—'}</td>
+                      <td style={{ textAlign: 'center' }}>
+                        <button
+                          type="button"
+                          className="purchase-actions-btn"
+                          title="Eliminar registro del historial"
+                          onClick={() => handleDeletePurchase(p.id)}
+                        >
+                          🗑️
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardBody>
+      </Card>
+
       {/* Modal interactivo de Registro de Compras */}
       <Modal
         isOpen={isPurchaseModalOpen}
         onClose={() => setIsPurchaseModalOpen(false)}
-        title="📥 Registrar Ingreso de Compras"
+        title={purchaseCategory === 'packaging' ? '📦 Registrar Compra de Empaques' : '📥 Registrar Compra de Ingredientes'}
         size="lg"
         footer={
           <>
@@ -518,21 +737,43 @@ export default function ShoppingPage() {
       >
         <div className="shopping-modal-content">
           <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-4)' }}>
-            Marca los ingredientes comprados y escribe la cantidad exacta recibida para sumarla automáticamente al inventario.
+            Marca los elementos comprados y escribe la cantidad exacta para sumarla automáticamente al inventario. Además, se registrará el dinero gastado como egreso del negocio.
           </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', marginBottom: 'var(--space-4)', background: 'var(--color-warm-50)', padding: 'var(--space-3)', borderRadius: 'var(--radius-lg)' }}>
+            <Field label="Total Dinero Gastado ($) *">
+              <Input
+                type="number"
+                min="0"
+                step="any"
+                required
+                placeholder="Ej: 45000"
+                value={purchaseTotalSpent}
+                onChange={(e) => setPurchaseTotalSpent(e.target.value)}
+              />
+            </Field>
+            <Field label="Notas / Proveedor de la compra">
+              <Input
+                type="text"
+                placeholder="Ej: Compras en Distribuidora El Panal"
+                value={purchaseNotes}
+                onChange={(e) => setPurchaseNotes(e.target.value)}
+              />
+            </Field>
+          </div>
 
           {/* Lista de compras a registrar */}
           <div className="shopping-purchase-list">
             <div className="purchase-list-header">
               <div style={{ width: '40px' }}></div>
-              <div>Ingrediente</div>
+              <div>Elemento</div>
               <div>Proveedor</div>
               <div style={{ textAlign: 'right' }}>Cantidad a Sumar</div>
             </div>
 
             {purchaseItems.length === 0 ? (
               <div className="purchase-list-empty">
-                No hay ingredientes en la lista. Agrega ingredientes abajo.
+                No hay elementos sugeridos. Agrega extras abajo si los compraste.
               </div>
             ) : (
               purchaseItems.map((item) => (
@@ -570,7 +811,7 @@ export default function ShoppingPage() {
             )}
           </div>
 
-          {/* Formulario de Ingrediente Extra */}
+          {/* Formulario de Ingrediente/Empaque Extra */}
           <div className="shopping-extra-form">
             <h4>➕ ¿Compraste algo más que no estaba en la receta?</h4>
             <div className="extra-form-grid">
@@ -579,19 +820,25 @@ export default function ShoppingPage() {
                   value={extraIngredientId}
                   onChange={(e) => setExtraIngredientId(e.target.value)}
                   options={[
-                    { value: '', label: '-- Selecciona un ingrediente --' },
-                    ...allIngredients.map((ing) => ({
-                      value: ing.id,
-                      label: `${ing.name} (${ing.unit}) — ${ing.provider || 'Sin Proveedor'}`,
-                    })),
+                    { value: '', label: purchaseCategory === 'packaging' ? '-- Selecciona un empaque extra --' : '-- Selecciona un ingrediente extra --' },
+                    ...(purchaseCategory === 'packaging'
+                      ? extraCostItems.filter(e => e.has_inventory).map((item) => ({
+                          value: item.id,
+                          label: `${item.name} (${item.quantity_sold} unid) — ${item.provider || 'Sin Proveedor'}`,
+                        }))
+                      : allIngredients.map((ing) => ({
+                          value: ing.id,
+                          label: `${ing.name} (${ing.unit}) — ${ing.provider || 'Sin Proveedor'}`,
+                        }))
+                    ),
                   ]}
-                  placeholder="Buscar ingrediente extra..."
+                  placeholder={purchaseCategory === 'packaging' ? 'Buscar empaque extra...' : 'Buscar ingrediente extra...'}
                 />
               </div>
               <div style={{ width: '130px' }}>
                 <Input
                   type="number"
-                  placeholder="Cant. (g/ml)"
+                  placeholder="Cantidad"
                   value={extraQty}
                   onChange={(e) => setExtraQty(e.target.value)}
                 />
