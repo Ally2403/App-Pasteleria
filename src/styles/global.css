@@ -199,8 +199,7 @@ p  { line-height: var(--line-height-relaxed); }
     max-width: 100vw !important;
     width: 100% !important;
     box-sizing: border-box !important;
-    /* Evitar que las cajas colapsen */
-    overflow-x: auto !important;
+    overflow-x: hidden !important; /* Bloquear el scroll en el contenido general */
   }
 
   /* Ajustar tarjetas para evitar padding excesivo en móviles */
@@ -328,6 +327,7 @@ p  { line-height: var(--line-height-relaxed); }
   .table-responsive,
   .purchases-table-wrapper {
     overflow-x: auto !important;
+    max-width: 100% !important;
     display: block !important;
     width: 100% !important;
     border: 1px solid var(--color-border-light) !important;
