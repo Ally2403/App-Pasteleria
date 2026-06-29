@@ -200,7 +200,7 @@ export default function ExtraCostsPage() {
                   const stockLow = (item.current_stock ?? 0) < (item.quantity_sold ?? 1);
                   return (
                     <Card hoverable key={item.id} className="extra-cost-card animate-fade-in-up" style={{
-                      borderLeft: stockLow ? '3px solid var(--color-warning)' : '3px solid var(--color-success)'
+                      borderTop: stockLow ? '4px solid var(--color-warning)' : '4px solid var(--color-success)'
                     }}>
                       <CardBody className="extra-cost-card-body">
                         <div className="extra-cost-main-info">
@@ -208,48 +208,44 @@ export default function ExtraCostsPage() {
                           <div className="extra-cost-details">
                             <span className="extra-cost-name">{item.name}</span>
                             {item.provider && (
-                              <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
+                              <span className="extra-cost-provider">
                                 🏪 {item.provider}
                               </span>
                             )}
-                            <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', marginTop: '2px', flexWrap: 'wrap' }}>
+                            <div className="extra-cost-meta-row">
                               <Badge variant="neutral" style={{ fontSize: 'var(--font-size-xs)' }}>
                                 {getExtraCostTypeLabel(item.type)}
                               </Badge>
                               <span className="extra-cost-price">{formatCurrency(item.unit_price)}/ud</span>
-                              <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
-                                ({item.quantity_sold} ud × {formatCurrency(item.price ?? item.unit_price * item.quantity_sold)})
-                              </span>
                             </div>
-                            {/* Stock actual */}
-                            <div style={{ marginTop: 'var(--space-2)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-                              <span style={{
-                                fontSize: 'var(--font-size-sm)',
-                                fontWeight: 'bold',
-                                color: stockLow ? 'var(--color-warning)' : 'var(--color-success)',
-                                background: stockLow ? '#fef3c7' : '#dcfce7',
-                                borderRadius: 'var(--radius-md)',
-                                padding: '2px 8px'
-                              }}>
-                                {stockLow ? '⚠️' : '✅'} Stock: {item.current_stock ?? 0} unid
-                              </span>
-                              {stockLow && (
-                                <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-warning)' }}>
-                                  Bajo — necesitas comprar
-                                </span>
-                              )}
+                            <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+                              Paquete: {item.quantity_sold} ud × {formatCurrency(item.price ?? item.unit_price * item.quantity_sold)}
                             </div>
                           </div>
                         </div>
-                        <div className="extra-cost-actions">
+
+                        {/* Inventario físico */}
+                        <div className="extra-cost-stock-section">
+                          <span className={`extra-cost-stock-badge ${stockLow ? 'low' : 'ok'}`}>
+                            {stockLow ? '⚠️' : '✅'} Stock: {item.current_stock ?? 0} unid
+                          </span>
+                          {stockLow && (
+                            <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-warning)', fontWeight: 'bold' }}>
+                              ¡Bajo!
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Pie de acciones */}
+                        <div className="extra-cost-footer-actions">
                           <Button
-                            variant="ghost"
+                            variant="secondary"
                             size="sm"
                             onClick={() => openStockEdit(item)}
                             title="Ajustar stock"
-                            style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-primary)' }}
+                            style={{ marginRight: 'auto' }}
                           >
-                            📊 Stock
+                            📊 Ajustar Stock
                           </Button>
                           {isAdmin && (
                             <>
@@ -302,23 +298,24 @@ export default function ExtraCostsPage() {
                         <div className="extra-cost-details">
                           <span className="extra-cost-name">{item.name}</span>
                           {item.provider && (
-                            <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
+                            <span className="extra-cost-provider">
                               🏪 {item.provider}
                             </span>
                           )}
-                          <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', marginTop: '2px', flexWrap: 'wrap' }}>
+                          <div className="extra-cost-meta-row">
                             <Badge variant="neutral" style={{ fontSize: 'var(--font-size-xs)' }}>
                               {getExtraCostTypeLabel(item.type)}
                             </Badge>
                             <span className="extra-cost-price">{formatCurrency(item.unit_price)}/ud</span>
-                            <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
-                              ({item.quantity_sold} ud × {formatCurrency(item.price ?? item.unit_price * item.quantity_sold)})
-                            </span>
+                          </div>
+                          <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+                            Paquete: {item.quantity_sold} ud × {formatCurrency(item.price ?? item.unit_price * item.quantity_sold)}
                           </div>
                         </div>
                       </div>
+                      
                       {isAdmin && (
-                        <div className="extra-cost-actions">
+                        <div className="extra-cost-footer-actions">
                           <Button
                             variant="ghost"
                             size="sm"

@@ -43,38 +43,28 @@ export default function ShoppingPage() {
   }, [notification]);
 
 
-  // Abrir el modal de registro cargando los elementos faltantes según la categoría
-  const handleOpenPurchaseModal = (category = 'ingredients') => {
+  // Abrir el modal de registro cargando todos los elementos faltantes (ingredientes y empaques)
+  const handleOpenPurchaseModal = () => {
     const items = [];
     Object.keys(shoppingListByProvider).forEach((provider) => {
       shoppingListByProvider[provider].forEach((item) => {
-        if ((category === 'ingredients' && !item.isExtraCost) || (category === 'packaging' && item.isExtraCost)) {
-          items.push({
-            id: item.id,
-            name: item.name,
-            unit: item.unit,
-            provider: provider,
-            quantityToRegister: item.totalToBuy,
-            quantitySold: item.quantitySold,
-            checked: true,
-            isExtraCost: item.isExtraCost,
-            packagePrice: item.packagePrice,
-            packsToBuy: item.packsToBuy
-          });
-        }
+        items.push({
+          id: item.id,
+          name: item.name,
+          unit: item.unit,
+          provider: provider,
+          quantityToRegister: item.totalToBuy,
+          quantitySold: item.quantitySold,
+          checked: true,
+          isExtraCost: !!item.isExtraCost,
+          packagePrice: item.packagePrice || 0,
+          packsToBuy: item.packsToBuy
+        });
       });
     });
 
-    // Calcular el gasto total estimado
-    let estimatedTotal = 0;
-    items.forEach(item => {
-      estimatedTotal += (item.packsToBuy * item.packagePrice);
-    });
-
     setPurchaseItems(items);
-    setPurchaseTotalSpent(estimatedTotal > 0 ? String(estimatedTotal) : '');
     setPurchaseNotes('');
-    setPurchaseCategory(category);
     setExtraIngredientId('');
     setExtraQty('');
     setIsPurchaseModalOpen(true);
@@ -83,51 +73,34 @@ export default function ShoppingPage() {
   // Cambiar cantidad en la lista de compras del modal
   const handlePurchaseQtyChange = (id, val) => {
     const parsedVal = parseFloat(val) || 0;
-    setPurchaseItems((prev) => {
-      const updated = prev.map((item) =>
+    setPurchaseItems((prev) =>
+      prev.map((item) =>
         item.id === id ? { ...item, quantityToRegister: parsedVal } : item
-      );
-      // Recalcular el total gastado según las cantidades ingresadas
-      let newTotal = 0;
-      updated.forEach(item => {
-        if (item.checked) {
-          const packs = item.quantitySold > 0 ? Math.ceil(item.quantityToRegister / item.quantitySold) : 1;
-          newTotal += packs * (item.packagePrice || 0);
-        }
-      });
-      setPurchaseTotalSpent(newTotal > 0 ? String(newTotal) : '');
-      return updated;
-    });
+      )
+    );
   };
 
   // Marcar/Desmarcar ingrediente en el modal
   const handlePurchaseToggle = (id) => {
-    setPurchaseItems((prev) => {
-      const updated = prev.map((item) =>
+    setPurchaseItems((prev) =>
+      prev.map((item) =>
         item.id === id ? { ...item, checked: !item.checked } : item
-      );
-      // Recalcular total gastado
-      let newTotal = 0;
-      updated.forEach(item => {
-        if (item.checked) {
-          const packs = item.quantitySold > 0 ? Math.ceil(item.quantityToRegister / item.quantitySold) : 1;
-          newTotal += packs * (item.packagePrice || 0);
-        }
-      });
-      setPurchaseTotalSpent(newTotal > 0 ? String(newTotal) : '');
-      return updated;
-    });
+      )
+    );
   };
 
-  // Agregar un ingrediente extra que no estuviera originalmente en la lista
+  // Agregar un elemento extra que no estuviera originalmente en la lista
   const handleAddExtraIngredient = () => {
     if (!extraIngredientId) return;
     
-    let matchedItem;
-    if (purchaseCategory === 'ingredients') {
-      matchedItem = allIngredients.find((a) => a.id === extraIngredientId);
-    } else {
+    // Buscar en ingredientes
+    let matchedItem = allIngredients.find((a) => a.id === extraIngredientId);
+    let isExtraCost = false;
+
+    // Si no está, buscar en empaques
+    if (!matchedItem) {
       matchedItem = extraCostItems.find((a) => a.id === extraIngredientId);
+      isExtraCost = true;
     }
 
     if (!matchedItem) return;
@@ -143,33 +116,21 @@ export default function ShoppingPage() {
     const quantitySold = matchedItem.quantity_sold || 1;
     const packagePrice = matchedItem.price || 0;
 
-    setPurchaseItems((prev) => {
-      const updated = [
-        ...prev,
-        {
-          id: matchedItem.id,
-          name: matchedItem.name,
-          unit: matchedItem.unit || 'unid',
-          provider: matchedItem.provider || 'Sin Proveedor',
-          quantityToRegister: qty,
-          quantitySold,
-          packagePrice,
-          packsToBuy: quantitySold > 0 ? Math.ceil(qty / quantitySold) : 1,
-          checked: true,
-          isExtraCost: purchaseCategory === 'packaging'
-        },
-      ];
-
-      let newTotal = 0;
-      updated.forEach(item => {
-        if (item.checked) {
-          const packs = item.quantitySold > 0 ? Math.ceil(item.quantityToRegister / item.quantitySold) : 1;
-          newTotal += packs * (item.packagePrice || 0);
-        }
-      });
-      setPurchaseTotalSpent(newTotal > 0 ? String(newTotal) : '');
-      return updated;
-    });
+    setPurchaseItems((prev) => [
+      ...prev,
+      {
+        id: matchedItem.id,
+        name: matchedItem.name,
+        unit: matchedItem.unit || 'unid',
+        provider: matchedItem.provider || 'Sin Proveedor',
+        quantityToRegister: qty,
+        quantitySold,
+        packagePrice,
+        packsToBuy: quantitySold > 0 ? Math.ceil(qty / quantitySold) : 1,
+        checked: true,
+        isExtraCost
+      },
+    ]);
 
     setExtraIngredientId('');
     setExtraQty('');
@@ -183,59 +144,71 @@ export default function ShoppingPage() {
       return;
     }
 
-    // Para ingredientes, el usuario ingresa el monto manualmente.
-    // Para empaques, lo calculamos automáticamente del precio × paquetes.
-    let moneySpent = 0;
-    if (purchaseCategory === 'ingredients') {
-      moneySpent = parseFloat(purchaseTotalSpent);
-      if (isNaN(moneySpent) || moneySpent <= 0) {
-        setNotification({ message: 'Por favor ingresa un total de dinero gastado válido mayor a 0.', type: 'warning' });
-        return;
-      }
-    } else {
-      // Empaques: calcular automáticamente
-      activePurchases.forEach(item => {
-        const packs = item.quantitySold > 0 ? Math.ceil(item.quantityToRegister / item.quantitySold) : 1;
-        moneySpent += packs * (item.packagePrice || 0);
-      });
-    }
-
     setSavingPurchase(true);
 
     try {
-      // 1. Guardar el Egreso Financiero (si hay monto > 0)
-      if (moneySpent > 0) {
+      // 1. Clasificar y calcular montos automáticamente
+      const ingredientsToDeduct = [];
+      const packagingToDeduct = [];
+
+      let totalIngSpent = 0;
+      let totalPackSpent = 0;
+
+      activePurchases.forEach(item => {
+        const packs = item.quantitySold > 0 ? Math.ceil(item.quantityToRegister / item.quantitySold) : 1;
+        const itemCost = packs * (item.packagePrice || 0);
+
+        if (item.isExtraCost) {
+          totalPackSpent += itemCost;
+          packagingToDeduct.push({
+            extraCostItemId: item.id,
+            quantityUsed: parseFloat(item.quantityToRegister) || 0
+          });
+        } else {
+          totalIngSpent += itemCost;
+          ingredientsToDeduct.push({
+            ingredientId: item.id,
+            quantityUsed: parseFloat(item.quantityToRegister) || 0
+          });
+        }
+      });
+
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      // 2. Registrar egreso de Ingredientes si aplica
+      if (totalIngSpent > 0) {
         await addIngredientPurchase({
-          purchase_date: new Date().toISOString().split('T')[0],
-          total_spent: moneySpent,
-          category: purchaseCategory,
-          notes: purchaseNotes || `Compra automática registrada desde la lista de compras`
+          purchase_date: todayStr,
+          total_spent: totalIngSpent,
+          category: 'ingredients',
+          notes: purchaseNotes || 'Compra de ingredientes registrada desde la lista de compras'
         });
       }
 
-      // 2. Incrementar el stock correspondiente en la base de datos
-      if (purchaseCategory === 'ingredients') {
-        const usages = activePurchases.map((item) => ({
-          ingredientId: item.id,
-          quantityUsed: parseFloat(item.quantityToRegister) || 0,
-        }));
-        await addToInventory(usages);
-      } else {
-        // Incrementar empaques
-        const addItems = activePurchases.map((item) => ({
-          extraCostItemId: item.id,
-          quantityUsed: parseFloat(item.quantityToRegister) || 0,
-        }));
+      // 3. Registrar egreso de Empaques si aplica
+      if (totalPackSpent > 0) {
+        await addIngredientPurchase({
+          purchase_date: todayStr,
+          total_spent: totalPackSpent,
+          category: 'packaging',
+          notes: purchaseNotes || 'Compra de empaques registrada desde la lista de compras'
+        });
+      }
+
+      // 4. Sumar el stock a la base de datos
+      if (ingredientsToDeduct.length > 0) {
+        await addToInventory(ingredientsToDeduct);
+      }
+      if (packagingToDeduct.length > 0) {
         const { addExtraCostsToInventory } = await import('../../services/extra_costs.service');
-        await addExtraCostsToInventory(addItems);
+        await addExtraCostsToInventory(packagingToDeduct);
       }
       
       setIsPurchaseModalOpen(false);
       await refreshIngredientsOnly();
-      const msg = purchaseCategory === 'packaging'
-        ? `¡Stock de empaques actualizado! Se registró un egreso automático de ${formatCurrency(moneySpent)}. 📦`
-        : `¡Inventario y finanzas actualizados! Se registró un egreso de ${formatCurrency(moneySpent)}. 🎉`;
-      setNotification({ message: msg, type: 'success' });
+
+      const totalSpentStr = formatCurrency(totalIngSpent + totalPackSpent);
+      setNotification({ message: `¡Stock e inventario actualizados con éxito! Se registraron egresos por un valor total de ${totalSpentStr}. 🎉`, type: 'success' });
     } catch (err) {
       console.error('Error al registrar compras:', err);
       setNotification({ message: `Hubo un error al registrar las compras: ${err.message || err}`, type: 'error' });
@@ -473,14 +446,9 @@ export default function ShoppingPage() {
           <h1>🛒 Lista de Compras</h1>
           <p>Compara recetas con tu stock disponible y genera la lista de compras por proveedor</p>
         </div>
-        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-          <Button variant="secondary" onClick={() => handleOpenPurchaseModal('packaging')}>
-            📦 Reg. Compra de Empaques
-          </Button>
-          <Button variant="success" onClick={() => handleOpenPurchaseModal('ingredients')}>
-            📥 Reg. Compra de Ingredientes
-          </Button>
-        </div>
+        <Button variant="success" onClick={handleOpenPurchaseModal}>
+          📥 Registrar Ingreso de Compras
+        </Button>
       </div>
 
       {notification && (
@@ -587,14 +555,9 @@ export default function ShoppingPage() {
                   <Button variant="primary" onClick={handleCopyList}>
                     {copySuccess ? '✓ ¡Copiado!' : '📋 Copiar para WhatsApp'}
                   </Button>
-                  <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                    <Button variant="secondary" onClick={() => handleOpenPurchaseModal('packaging')}>
-                      📦 Compré Empaques
-                    </Button>
-                    <Button variant="success" onClick={() => handleOpenPurchaseModal('ingredients')}>
-                      🛒 Compré Ingredientes
-                    </Button>
-                  </div>
+                  <Button variant="success" onClick={handleOpenPurchaseModal}>
+                    📥 Ingresar Compras a Inventario
+                  </Button>
                 </>
               )}
             </div>
@@ -734,7 +697,7 @@ export default function ShoppingPage() {
       <Modal
         isOpen={isPurchaseModalOpen}
         onClose={() => setIsPurchaseModalOpen(false)}
-        title={purchaseCategory === 'packaging' ? '📦 Registrar Compra de Empaques' : '📥 Registrar Compra de Ingredientes'}
+        title="📥 Registrar Ingreso de Compras"
         size="lg"
         footer={
           <>
@@ -748,38 +711,20 @@ export default function ShoppingPage() {
         }
       >
         <div className="shopping-modal-content">
-          {purchaseCategory === 'packaging' ? (
-            <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-4)' }}>
-              📦 Marca los empaques que compraste e ingresa la cantidad recibida. El costo se calculará automáticamente y se registrará como egreso.
-            </p>
-          ) : (
-            <>
-              <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-3)' }}>
-                🛒 Marca los ingredientes comprados, ingresa la cantidad recibida y el total real que pagaste.
-              </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', marginBottom: 'var(--space-4)', background: 'var(--color-warm-50)', padding: 'var(--space-3)', borderRadius: 'var(--radius-lg)' }}>
-                <Field label="Total Dinero Gastado ($) *">
-                  <Input
-                    type="number"
-                    min="0"
-                    step="any"
-                    required
-                    placeholder="Ej: 45000"
-                    value={purchaseTotalSpent}
-                    onChange={(e) => setPurchaseTotalSpent(e.target.value)}
-                  />
-                </Field>
-                <Field label="Notas / Proveedor de la compra">
-                  <Input
-                    type="text"
-                    placeholder="Ej: Compras en Distribuidora El Panal"
-                    value={purchaseNotes}
-                    onChange={(e) => setPurchaseNotes(e.target.value)}
-                  />
-                </Field>
-              </div>
-            </>
-          )}
+          <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-4)' }}>
+            🛒 Marca los elementos que compraste e ingresa la cantidad recibida. Los montos se calcularán automáticamente y se registrarán como egreso real en tu balance.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--space-4)', marginBottom: 'var(--space-4)', background: 'var(--color-warm-50)', padding: 'var(--space-3)', borderRadius: 'var(--radius-lg)' }}>
+            <Field label="Notas de la compra (opcional)">
+              <Input
+                type="text"
+                placeholder="Ej: Compras en Distribuidora El Panal"
+                value={purchaseNotes}
+                onChange={(e) => setPurchaseNotes(e.target.value)}
+              />
+            </Field>
+          </div>
 
           {/* Lista de compras a registrar */}
           <div className="shopping-purchase-list">
@@ -806,7 +751,7 @@ export default function ShoppingPage() {
                     />
                   </div>
                   <div className="purchase-row-name">
-                    <strong>{item.name}</strong>
+                    <strong>{item.isExtraCost ? '📦' : '🥣'} {item.name}</strong>
                   </div>
                   <div className="purchase-row-provider">
                     <span className="badge-provider">{item.provider}</span>
@@ -839,19 +784,23 @@ export default function ShoppingPage() {
                   value={extraIngredientId}
                   onChange={(e) => setExtraIngredientId(e.target.value)}
                   options={[
-                    { value: '', label: purchaseCategory === 'packaging' ? '-- Selecciona un empaque extra --' : '-- Selecciona un ingrediente extra --' },
-                    ...(purchaseCategory === 'packaging'
-                      ? extraCostItems.filter(e => e.has_inventory).map((item) => ({
-                          value: item.id,
-                          label: `${item.name} (${item.quantity_sold} unid) — ${item.provider || 'Sin Proveedor'}`,
-                        }))
-                      : allIngredients.map((ing) => ({
-                          value: ing.id,
-                          label: `${ing.name} (${ing.unit}) — ${ing.provider || 'Sin Proveedor'}`,
-                        }))
-                    ),
+                    { value: '', label: '-- Selecciona ingrediente o empaque extra --' },
+                    {
+                      label: '🥣 INGREDIENTES',
+                      options: allIngredients.map((ing) => ({
+                        value: ing.id,
+                        label: `${ing.name} (${ing.unit}) — ${ing.provider || 'Sin Proveedor'}`,
+                      }))
+                    },
+                    {
+                      label: '📦 EMPAQUES (Otros Costos)',
+                      options: extraCostItems.filter(e => e.has_inventory).map((item) => ({
+                        value: item.id,
+                        label: `${item.name} (${item.quantity_sold} unid) — ${item.provider || 'Sin Proveedor'}`,
+                      }))
+                    }
                   ]}
-                  placeholder={purchaseCategory === 'packaging' ? 'Buscar empaque extra...' : 'Buscar ingrediente extra...'}
+                  placeholder="Buscar elemento extra..."
                 />
               </div>
               <div style={{ width: '130px' }}>
@@ -859,7 +808,7 @@ export default function ShoppingPage() {
                   type="number"
                   placeholder="Cantidad"
                   value={extraQty}
-                  onChange={(e) => setExtraQty(e.target.value)}
+                  onChange={(e) => setStockValue ? setExtraQty(e.target.value) : setExtraQty(e.target.value)}
                 />
               </div>
               <Button type="button" variant="secondary" onClick={handleAddExtraIngredient}>
