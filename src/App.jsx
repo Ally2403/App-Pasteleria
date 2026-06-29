@@ -17,6 +17,7 @@ import CustomersPage from './pages/CustomersPage';
 import ProvidersPage from './pages/ProvidersPage';
 import ExtraCostsPage from './pages/ExtraCostsPage';
 import ProfilePage from './pages/ProfilePage/ProfilePage';
+import BalancePage from './pages/BalancePage/BalancePage';
 
 // Componente Layout que envuelve las páginas protegidas
 function AppLayout() {
@@ -143,6 +144,12 @@ export default function App() {
             <Route
               path="perfil"
               element={<ProfilePage />}
+            />
+
+            {/* Balance y Caja Mensual */}
+            <Route
+              path="balance"
+              element={<BalancePage />}
             />
           </Route>
 

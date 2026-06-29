@@ -25,6 +25,7 @@ const NAV_ITEMS = [
     items: [
       { to: '/ventas',    icon: '💰', label: 'Ventas',     permission: PERMISSIONS.VIEW_SALES },
       { to: '/clientes',  icon: '👥', label: 'Clientes',   permission: PERMISSIONS.VIEW_CUSTOMERS },
+      { to: '/balance',   icon: '📊', label: 'Balance de caja', permission: null },
     ],
   },
   {

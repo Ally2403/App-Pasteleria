@@ -221,6 +221,9 @@ export default function ShoppingPage() {
           list[providerName] = [];
         }
 
+        const packagePrice = updatedIng?.price || 0;
+        const totalCost = packsToBuy * packagePrice;
+
         list[providerName].push({
           id: ing.id,
           name: ing.name,
@@ -231,6 +234,8 @@ export default function ShoppingPage() {
           quantitySold,
           packsToBuy,
           totalToBuy,
+          packagePrice,
+          totalCost
         });
       }
     });
@@ -242,19 +247,36 @@ export default function ShoppingPage() {
     return Object.keys(shoppingListByProvider).length > 0;
   }, [shoppingListByProvider]);
 
+  const shoppingTotals = useMemo(() => {
+    let grandTotal = 0;
+    const totalsByProvider = {};
+
+    Object.keys(shoppingListByProvider).forEach((provider) => {
+      let providerSum = 0;
+      shoppingListByProvider[provider].forEach((item) => {
+        providerSum += item.totalCost;
+      });
+      totalsByProvider[provider] = providerSum;
+      grandTotal += providerSum;
+    });
+
+    return { grandTotal, totalsByProvider };
+  }, [shoppingListByProvider]);
+
   // Generar texto para compartir por WhatsApp / portapapeles
   const handleCopyList = () => {
     if (!selectedRecipe) return;
 
-    let text = `📋 *Lista de Compras — Pastelería Mami* 🌸\n`;
+    let text = `📋 *LISTA DE COMPRAS — PASTELERÍA MAMI* 🌸\n`;
     text += `Para hacer: *${selectedRecipe.name}* (${batches} bandeja${batches > 1 ? 's' : ''})\n`;
+    text += `Total estimado de dinero necesario: *${formatCurrency(shoppingTotals.grandTotal)}*\n`;
     text += `------------------------------------------\n\n`;
 
     Object.keys(shoppingListByProvider).forEach((provider) => {
-      text += `🏢 *${provider.toUpperCase()}*\n`;
+      const providerTotal = shoppingTotals.totalsByProvider[provider] || 0;
+      text += `🏢 *${provider.toUpperCase()}* (Presupuesto: *${formatCurrency(providerTotal)}*)\n`;
       shoppingListByProvider[provider].forEach((item) => {
-        text += `• *${item.name}*: Falta ${formatQuantity(item.deficit, item.unit)} (Stock: ${formatQuantity(item.stock, item.unit)} / Requerido: ${formatQuantity(item.needed, item.unit)})\n`;
-        text += `  → _Comprar: ${item.packsToBuy} paquete(s) de ${formatQuantity(item.quantitySold, item.unit)}_ (Total: ${formatQuantity(item.totalToBuy, item.unit)})\n`;
+        text += `• *${item.name}*: Compra *${item.packsToBuy} paquete(s)* de ${formatQuantity(item.quantitySold, item.unit)} (Valor: ${formatCurrency(item.totalCost)})\n`;
       });
       text += `\n`;
     });
@@ -354,6 +376,35 @@ export default function ShoppingPage() {
               Cálculo estimado para preparar <strong>{batches} bandeja{batches > 1 ? 's' : ''}</strong> ({selectedRecipe.units_per_batch * batches} unidades).
             </p>
 
+            {/* Tarjeta de Presupuesto Estimado */}
+            {hasShoppingItems && (
+              <div className="shopping-budget-banner animate-fade-in" style={{
+                background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                border: '1.5px solid #bbf7d0',
+                borderRadius: 'var(--radius-xl)',
+                padding: 'var(--space-4) var(--space-5)',
+                marginBottom: 'var(--space-5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 'var(--space-3)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                  <span style={{ fontSize: '2.2rem' }}>💰</span>
+                  <div>
+                    <h3 style={{ color: '#166534', margin: 0, fontSize: 'var(--font-size-lg)' }}>Presupuesto Estimado Necesario</h3>
+                    <p style={{ color: '#14532d', margin: 0, fontSize: 'var(--font-size-sm)' }}>
+                      Total de dinero que necesitas para comprar toda esta lista.
+                    </p>
+                  </div>
+                </div>
+                <div style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 'var(--font-weight-extrabold)', color: '#15803d' }}>
+                  {formatCurrency(shoppingTotals.grandTotal)}
+                </div>
+              </div>
+            )}
+
             {/* Acciones para la lista */}
             <div className="shopping-actions-row">
               {hasShoppingItems && (
@@ -387,41 +438,61 @@ export default function ShoppingPage() {
               </Card>
             ) : (
               <div className="shopping-providers-grid">
-                {Object.keys(shoppingListByProvider).map((provider) => (
-                  <div key={provider} className="provider-shopping-card animate-fade-in-up">
-                    <div className="provider-card-header">
-                      <span className="provider-card-title">
-                        🏢 {provider}
-                      </span>
-                      <span style={{ fontSize: 'var(--font-size-xs)', background: 'var(--color-rose-100)', color: 'var(--color-primary)', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontWeight: 'bold' }}>
-                        {shoppingListByProvider[provider].length} item{shoppingListByProvider[provider].length > 1 ? 's' : ''}
-                      </span>
-                    </div>
-                    
-                    <div className="provider-card-body">
-                      {shoppingListByProvider[provider].map((item) => (
-                        <div key={item.id} className="provider-item-row">
-                          <div className="provider-item-name-row">
-                            <span className="provider-item-name">{item.name}</span>
-                            <span className="provider-item-deficit">
-                              Falta: {formatQuantity(item.deficit, item.unit)}
-                            </span>
-                          </div>
-                          
-                          <div className="provider-item-details">
-                            <span>Tengo en stock: {formatQuantity(item.stock, item.unit)}</span>
-                            <span>Requerido para receta: {formatQuantity(item.needed, item.unit)}</span>
-                            <span>Mínimo venta de proveedor: {formatQuantity(item.quantitySold, item.unit)}</span>
-                          </div>
-
-                          <div className="provider-item-recommendation">
-                            💡 Comprar: <strong>{item.packsToBuy} paquete{item.packsToBuy > 1 ? 's' : ''}</strong> de {formatQuantity(item.quantitySold, item.unit)} (Total: {formatQuantity(item.totalToBuy, item.unit)})
-                          </div>
+                {Object.keys(shoppingListByProvider).map((provider) => {
+                  const providerTotal = shoppingTotals.totalsByProvider[provider] || 0;
+                  return (
+                    <div key={provider} className="provider-shopping-card animate-fade-in-up">
+                      <div className="provider-card-header" style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        borderBottom: '1px solid var(--color-border-light)',
+                        paddingBottom: 'var(--space-2)'
+                      }}>
+                        <span className="provider-card-title" style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'bold' }}>
+                          🏢 {provider}
+                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                          <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-rose-700)', fontWeight: 'extrabold' }}>
+                            Presupuesto: {formatCurrency(providerTotal)}
+                          </span>
                         </div>
-                      ))}
+                      </div>
+                      
+                      <div className="provider-card-body" style={{ marginTop: 'var(--space-3)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                        {shoppingListByProvider[provider].map((item) => (
+                          <div key={item.id} className="provider-item-row" style={{
+                            padding: 'var(--space-2) 0',
+                            borderBottom: '1px dashed var(--color-border-light)',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                          }}>
+                            <div>
+                              <div style={{ fontWeight: 'bold', color: 'var(--color-text-primary)', fontSize: 'var(--font-size-base)' }}>
+                                {item.name}
+                              </div>
+                              <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-success)', fontWeight: 'bold', marginTop: '2px' }}>
+                                🛒 Compra: {item.packsToBuy} paquete{item.packsToBuy > 1 ? 's' : ''} de {formatQuantity(item.quantitySold, item.unit)}
+                              </div>
+                              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                                (Faltan {formatQuantity(item.deficit, item.unit)} • Stock actual: {formatQuantity(item.stock, item.unit)})
+                              </div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <span style={{ fontWeight: 'extrabold', color: 'var(--color-text-primary)', fontSize: 'var(--font-size-base)' }}>
+                                {formatCurrency(item.totalCost)}
+                              </span>
+                              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
+                                ({formatCurrency(item.packagePrice)} / ud)
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
