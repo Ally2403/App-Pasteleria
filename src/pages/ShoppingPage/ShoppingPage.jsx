@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { getRecipes, getRecipeById } from '../../services/recipes.service';
 import { getIngredients, addToInventory } from '../../services/ingredients.service';
-import { formatQuantity } from '../../utils/formatters';
+import { formatQuantity, formatCurrency } from '../../utils/formatters';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Select, Input, Field, SearchableSelect } from '../../components/ui/Input';
