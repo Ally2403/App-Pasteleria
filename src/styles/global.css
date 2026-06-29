@@ -519,11 +519,19 @@ p  { line-height: var(--line-height-relaxed); }
     padding: var(--space-2) !important;
   }
 
-  /* Compactar cuadrículas y tarjetas de ingredientes y recetas en móviles */
-  .ingredients-grid,
+  /* Cuadrícula de ingredientes: 1 columna (cards muy completas) */
+  .ingredients-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: var(--space-2) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Cuadrícula de recetas: 2 columnas (cards más simples) */
   .recipes-grid {
     display: grid !important;
-    grid-template-columns: 1fr 1fr !important; /* Dos columnas idénticas al 50% exacto */
+    grid-template-columns: 1fr 1fr !important;
     gap: var(--space-2) !important;
     width: 100% !important;
     max-width: 100% !important;
