@@ -505,11 +505,83 @@ p  { line-height: var(--line-height-relaxed); }
     padding: var(--space-6) var(--space-2) !important;
   }
 
-  /* ── Budget banner responsive ── */
-  .shopping-budget-banner {
     flex-direction: column !important;
     text-align: center !important;
     padding: var(--space-2) !important;
+  }
+
+  /* Compactar cuadrículas y tarjetas de ingredientes y recetas en móviles */
+  .ingredients-grid,
+  .recipes-grid {
+    grid-template-columns: repeat(2, 1fr) !important; /* Dos por fila en el celular */
+    gap: var(--space-2) !important;
+  }
+
+  .ingredient-card,
+  .recipe-card {
+    padding: var(--space-2) !important;
+  }
+
+  .ingredient-card-name,
+  .recipe-card-name {
+    font-size: 0.9rem !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .recipe-card-emoji {
+    font-size: 1.6rem !important;
+    margin-bottom: var(--space-1) !important;
+  }
+
+  .recipe-card-stats {
+    gap: 4px !important;
+    margin-bottom: var(--space-2) !important;
+  }
+
+  .recipe-card-stat {
+    padding: 4px !important;
+    border-radius: var(--radius-md) !important;
+  }
+
+  .recipe-card-stat-label {
+    font-size: 0.6rem !important;
+  }
+
+  .recipe-card-stat-value {
+    font-size: 0.75rem !important;
+  }
+
+  .recipe-card-footer {
+    font-size: 0.7rem !important;
+  }
+
+  .recipe-card-footer span {
+    display: none !important; /* Ocultar "Ver detalles ->" en la tarjeta compacta para ahorrar espacio */
+  }
+
+  .ingredient-info-row {
+    font-size: 0.75rem !important;
+    padding: 3px 0 !important;
+  }
+
+  .ingredient-unit-price {
+    margin-top: var(--space-2) !important;
+    padding: var(--space-2) !important;
+    border-radius: var(--radius-md) !important;
+  }
+
+  .ingredient-unit-price-value {
+    font-size: 0.85rem !important;
+  }
+
+  .stock-section {
+    margin-top: var(--space-2) !important;
+  }
+
+  .stock-value {
+    font-size: 0.8rem !important;
   }
 }
 

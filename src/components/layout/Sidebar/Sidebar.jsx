@@ -75,7 +75,7 @@ export default function Sidebar({ isOpen, onClose }) {
       <aside className={`app-sidebar sidebar ${isOpen ? 'open' : ''}`}>
         {/* Branding */}
         <div className="sidebar-brand">
-          <div className="sidebar-brand-icon">🎂</div>
+          <div className="sidebar-brand-icon">🧁</div>
           <div>
             <div className="sidebar-brand-name">Mi Pastelería</div>
             <div className="sidebar-brand-sub">Gestión de negocio</div>
@@ -139,7 +139,7 @@ export function MobileNavbar({ onMenuOpen }) {
   return (
     <header className="mobile-navbar">
       <div className="mobile-nav-brand">
-        <span>🎂</span>
+        <span>🧁</span>
         <span>Mi Pastelería</span>
       </div>
       <button
