@@ -36,7 +36,7 @@
 .provider-ingredients-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1.5);
+  gap: 6px;
 }
 
 .ingredient-tag {
