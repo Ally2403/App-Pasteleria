@@ -323,25 +323,80 @@ p  { line-height: var(--line-height-relaxed); }
     gap: var(--space-2) !important;
   }
 
-  /* ── Tablas responsive: scroll horizontal ── */
+  /* ── Tablas transformadas en bloques verticales legibles en móvil ── */
   .table-responsive,
   .purchases-table-wrapper {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
+    overflow-x: visible !important;
     max-width: 100% !important;
+    border: none !important;
   }
 
-  .dashboard-table th,
+  .purchases-table,
+  .dashboard-table {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .purchases-table thead,
+  .dashboard-table thead {
+    display: none !important; /* Ocultar encabezados de tabla */
+  }
+
+  .purchases-table tbody,
+  .dashboard-table tbody {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: var(--space-2) !important;
+    width: 100% !important;
+  }
+
+  .purchases-table tr,
+  .dashboard-table tr {
+    display: flex !important;
+    flex-direction: column !important;
+    background: var(--color-surface) !important;
+    border: 1px solid var(--color-border-light) !important;
+    border-radius: var(--radius-md) !important;
+    padding: var(--space-2) var(--space-3) !important;
+    gap: 4px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    box-shadow: var(--shadow-xs) !important;
+  }
+
+  .purchases-table td,
   .dashboard-table td {
-    padding: var(--space-2) var(--space-2) !important;
-    font-size: 0.7rem !important;
-    white-space: nowrap !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    border-bottom: none !important;
+    padding: var(--space-1) 0 !important;
+    font-size: var(--font-size-sm) !important;
+    text-align: right !important;
+    width: 100% !important;
+    background: transparent !important;
   }
 
-  .purchases-table th,
-  .purchases-table td {
-    padding: var(--space-2) var(--space-1) !important;
-    font-size: 0.68rem !important;
+  /* Mostrar nombres de campo antes de cada valor */
+  .purchases-table td::before,
+  .dashboard-table td::before {
+    content: attr(data-label) !important;
+    font-weight: var(--font-weight-bold) !important;
+    color: var(--color-text-secondary) !important;
+    text-align: left !important;
+    margin-right: var(--space-4) !important;
+  }
+
+  /* Excepción para cuando no hay compras */
+  .purchases-table td.purchase-list-empty,
+  .dashboard-table td.empty-state {
+    display: block !important;
+    text-align: center !important;
+  }
+
+  .purchases-table td.purchase-list-empty::before,
+  .dashboard-table td.empty-state::before {
+    display: none !important;
   }
 
   /* ── Modales responsive ── */

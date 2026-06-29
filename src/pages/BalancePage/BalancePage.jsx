@@ -395,21 +395,21 @@ export default function BalancePage() {
                         const registeredBy = p.profiles?.full_name || 'Desconocido';
                         return (
                           <tr key={p.id}>
-                            <td>{new Date(p.purchase_date + 'T00:00:00').toLocaleDateString()}</td>
-                            <td>
+                            <td data-label="Fecha">{new Date(p.purchase_date + 'T00:00:00').toLocaleDateString()}</td>
+                            <td data-label="Concepto">
                               <strong>{p.name}</strong>
                               {p.notes && <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', margin: 0 }}>{p.notes}</p>}
                             </td>
-                            <td>
+                            <td data-label="Categoría">
                               <span className={`purchase-cat-badge cat-${p.category}`}>
                                 {CATEGORIES.find(c => c.value === p.category)?.label.split(' ')[1] || p.category}
                               </span>
                             </td>
-                            <td>{p.quantity}</td>
-                            <td><strong>{formatCurrency(p.price * p.quantity)}</strong></td>
-                            <td>{registeredBy}</td>
+                            <td data-label="Cant.">{p.quantity}</td>
+                            <td data-label="Total"><strong>{formatCurrency(p.price * p.quantity)}</strong></td>
+                            <td data-label="Registrado por">{registeredBy}</td>
                             {isAdmin && (
-                              <td>
+                              <td data-label="Acciones">
                                 <div style={{ display: 'flex', gap: '4px' }}>
                                   <button onClick={() => handleOpenEdit(p)} className="purchase-actions-btn" title="Editar">✏️</button>
                                   <button onClick={() => setDeleteTarget(p)} className="purchase-actions-btn" title="Eliminar">🗑️</button>

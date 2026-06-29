@@ -692,14 +692,14 @@ export default function DashboardPage() {
 
                           return (
                             <tr key={recipe.id}>
-                              <td style={{ fontWeight: 'bold' }}>{recipe.name}</td>
-                              <td style={{ textAlign: 'right' }}>
+                              <td data-label="Receta" style={{ fontWeight: 'bold' }}>{recipe.name}</td>
+                              <td data-label="Precio Venta" style={{ textAlign: 'right' }}>
                                 {formatCurrency(profitInfo.sellingPrice)}
                               </td>
-                              <td style={{ textAlign: 'right', color: 'var(--color-success)', fontWeight: 'bold' }}>
+                              <td data-label="Mi Ganancia / Unidad" style={{ textAlign: 'right', color: 'var(--color-success)', fontWeight: 'bold' }}>
                                 {formatCurrency(profitInfo.partnerProfitPerUnit)}
                               </td>
-                              <td style={{ textAlign: 'right', color: 'var(--color-rose-600)', fontWeight: 'bold' }}>
+                              <td data-label="Mi Ganancia / Tanda" style={{ textAlign: 'right', color: 'var(--color-rose-600)', fontWeight: 'bold' }}>
                                 {formatCurrency(profitInfo.partnerProfitPerUnit * recipe.units_per_batch)}
                               </td>
                             </tr>
@@ -817,7 +817,7 @@ function UpcomingDeliveriesSection({ deliveries, navigate }) {
                       onClick={() => navigate('/ventas')}
                       style={{ cursor: 'pointer' }}
                     >
-                      <td>
+                      <td data-label="Entrega">
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                           <span style={{ fontWeight: 'bold' }}>{formatDate(delivery.delivery_date)}</span>
                           {urgency && (
@@ -825,8 +825,8 @@ function UpcomingDeliveriesSection({ deliveries, navigate }) {
                           )}
                         </div>
                       </td>
-                      <td style={{ fontWeight: 'var(--font-weight-semibold)' }}>👤 {cust}</td>
-                      <td>
+                      <td data-label="Cliente" style={{ fontWeight: 'var(--font-weight-semibold)' }}>👤 {cust}</td>
+                      <td data-label="Productos">
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                           {(delivery.sale_items ?? []).map((item) => (
                             <span key={item.id} style={{ fontSize: 'var(--font-size-sm)' }}>
@@ -835,16 +835,16 @@ function UpcomingDeliveriesSection({ deliveries, navigate }) {
                           ))}
                         </div>
                       </td>
-                      <td style={{ textAlign: 'right', fontWeight: 'bold', color: 'var(--color-rose-600)' }}>
+                      <td data-label="Total" style={{ textAlign: 'right', fontWeight: 'bold', color: 'var(--color-rose-600)' }}>
                         {formatCurrency(delivery.total)}
                       </td>
-                      <td style={{ textAlign: 'right', color: 'var(--color-success)', fontWeight: 'bold' }}>
+                      <td data-label="Abonado" style={{ textAlign: 'right', color: 'var(--color-success)', fontWeight: 'bold' }}>
                         {amountPaid > 0 ? formatCurrency(amountPaid) : '—'}
                       </td>
-                      <td style={{ textAlign: 'right', color: remaining > 0 ? 'var(--color-danger)' : 'var(--color-success)', fontWeight: 'bold' }}>
+                      <td data-label="Por Cobrar" style={{ textAlign: 'right', color: remaining > 0 ? 'var(--color-danger)' : 'var(--color-success)', fontWeight: 'bold' }}>
                         {remaining > 0 ? formatCurrency(remaining) : '✓ Pagado'}
                       </td>
-                      <td style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
+                      <td data-label="Registró" style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
                         {registeredBy ?? '—'}
                       </td>
                     </tr>
