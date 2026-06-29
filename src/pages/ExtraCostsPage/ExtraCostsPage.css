@@ -1,4 +1,4 @@
-.extra-costs-grid {
+.extra-costs-layout-grid-custom {
   display: grid !important;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
   gap: var(--space-4) !important;

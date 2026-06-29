@@ -152,7 +152,7 @@ export default function ExtraCostsPage() {
           )}
         </div>
       ) : (
-        <div className="extra-costs-grid">
+        <div className="extra-costs-layout-grid-custom">
           {filtered.map((item) => (
             <Card hoverable key={item.id} className="extra-cost-card animate-fade-in-up">
               <CardBody className="extra-cost-card-body">

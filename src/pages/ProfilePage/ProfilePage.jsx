@@ -114,7 +114,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="profile-grid">
+      <div className="profile-layout-grid-custom">
         {/* Sección: Información General */}
         <div className="profile-section-col">
           <Card>

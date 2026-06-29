@@ -4,7 +4,7 @@
   gap: var(--space-4);
 }
 
-.profile-grid {
+.profile-layout-grid-custom {
   display: grid !important;
   grid-template-columns: 1fr 1fr !important;
   gap: var(--space-6) !important;
@@ -12,7 +12,7 @@
 }
 
 @media (max-width: 768px) {
-  .profile-grid {
+  .profile-layout-grid-custom {
     grid-template-columns: 1fr !important;
     gap: var(--space-4) !important;
   }
