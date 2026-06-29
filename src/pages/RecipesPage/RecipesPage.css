@@ -288,3 +288,51 @@
 .toggle-switch.on::after {
   transform: translateX(18px);
 }
+
+@media (max-width: 768px) {
+  .recipes-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: var(--space-2) !important;
+  }
+
+  .recipe-card {
+    padding: var(--space-2) !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .recipe-card-emoji {
+    font-size: 1.4rem !important;
+    margin-bottom: var(--space-1) !important;
+  }
+
+  .recipe-card-name {
+    font-size: 0.85rem !important;
+  }
+
+  .recipe-card-stats {
+    gap: 4px !important;
+    margin-bottom: var(--space-2) !important;
+  }
+
+  .recipe-card-stat {
+    padding: 4px !important;
+  }
+
+  .recipe-card-stat-label {
+    font-size: 0.6rem !important;
+  }
+
+  .recipe-card-stat-value {
+    font-size: 0.75rem !important;
+  }
+
+  .recipe-card-footer {
+    font-size: 0.7rem !important;
+  }
+
+  .recipe-card-footer span {
+    display: none !important;
+  }
+}
+
