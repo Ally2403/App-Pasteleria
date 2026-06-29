@@ -114,24 +114,30 @@ export default function BalancePage() {
       });
 
       // B. Egresos Reales por compras registradas en el mes (ingredientes y empaques)
-      const { data: purchasesData, error: purchasesError } = await supabase
-        .from('ingredient_purchases')
-        .select('total_spent, category, purchase_date')
-        .gte('purchase_date', startDate)
-        .lte('purchase_date', endDate);
-
-      if (purchasesError) throw purchasesError;
-
+      // Si la tabla ingredient_purchases aún no existe, simplemente usa 0.
       let totalIngredientsSpent = 0;
       let totalPackagingSpent = 0;
+      try {
+        const { data: purchasesData, error: purchasesError } = await supabase
+          .from('ingredient_purchases')
+          .select('total_spent, category, purchase_date')
+          .gte('purchase_date', startDate)
+          .lte('purchase_date', endDate);
 
-      purchasesData.forEach(p => {
-        if (p.category === 'packaging') {
-          totalPackagingSpent += parseFloat(p.total_spent) || 0;
-        } else {
-          totalIngredientsSpent += parseFloat(p.total_spent) || 0;
+        if (!purchasesError && purchasesData) {
+          purchasesData.forEach(p => {
+            if (p.category === 'packaging') {
+              totalPackagingSpent += parseFloat(p.total_spent) || 0;
+            } else {
+              totalIngredientsSpent += parseFloat(p.total_spent) || 0;
+            }
+          });
+        } else if (purchasesError) {
+          console.warn('ingredient_purchases no disponible aún (ejecuta el SQL de migración):', purchasesError.message);
         }
-      });
+      } catch (purchErr) {
+        console.warn('Error al consultar ingredient_purchases:', purchErr.message);
+      }
 
       // C. Costos no programados de la tabla other_purchases en el mes
       let totalOtherPurchasesCost = 0;
@@ -149,9 +155,9 @@ export default function BalancePage() {
 
       setBalanceMetrics({
         income: totalIncome,
-        productionCost: totalIngredientsSpent, // Mapeado a Ingredientes en UI
-        templatesCost: totalPackagingSpent,     // Mapeado a Empaques en UI
-        purchasesCost: totalOtherPurchasesCost,  // Mapeado a Compras no programadas en UI
+        productionCost: totalIngredientsSpent,
+        templatesCost: totalPackagingSpent,
+        purchasesCost: totalOtherPurchasesCost,
         totalExpenses,
         netProfit
       });

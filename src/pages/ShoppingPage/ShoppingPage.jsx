@@ -243,40 +243,36 @@ export default function ShoppingPage() {
 
   // Función auxiliar para refrescar stock y compras tras comprar
   const refreshIngredientsOnly = async () => {
-    try {
-      const [ingredientsData, extraCostsData, purchasesData] = await Promise.all([
-        getIngredients(),
-        getExtraCostItems(),
-        getIngredientPurchases(),
-      ]);
-      setAllIngredients(ingredientsData);
-      setExtraCostItems(extraCostsData);
-      setPurchasesHistory(purchasesData);
-    } catch (err) {
-      console.error('Error al refrescar datos:', err);
-    }
+    const [ingRes, extraRes, purchRes] = await Promise.allSettled([
+      getIngredients(),
+      getExtraCostItems(),
+      getIngredientPurchases(),
+    ]);
+    if (ingRes.status === 'fulfilled') setAllIngredients(ingRes.value);
+    if (extraRes.status === 'fulfilled') setExtraCostItems(extraRes.value);
+    if (purchRes.status === 'fulfilled') setPurchasesHistory(purchRes.value);
+    else console.warn('ingredient_purchases no disponible aún:', purchRes.reason?.message);
   };
 
   // Cargar recetas e ingredientes al inicializar
   useEffect(() => {
     async function loadInitialData() {
       setLoading(true);
-      try {
-        const [recipesData, ingredientsData, extraCostsData, purchasesData] = await Promise.all([
-          getRecipes(),
-          getIngredients(),
-          getExtraCostItems(),
-          getIngredientPurchases(),
-        ]);
-        setRecipes(recipesData);
-        setAllIngredients(ingredientsData);
-        setExtraCostItems(extraCostsData);
-        setPurchasesHistory(purchasesData);
-      } catch (err) {
-        console.error('Error al cargar datos de compras:', err);
-      } finally {
-        setLoading(false);
-      }
+      // Usamos allSettled para que si ingredient_purchases no existe aún,
+      // no rompa la carga de recetas e ingredientes.
+      const [recipesRes, ingRes, extraRes, purchRes] = await Promise.allSettled([
+        getRecipes(),
+        getIngredients(),
+        getExtraCostItems(),
+        getIngredientPurchases(),
+      ]);
+      if (recipesRes.status === 'fulfilled') setRecipes(recipesRes.value);
+      else console.error('Error cargando recetas:', recipesRes.reason);
+      if (ingRes.status === 'fulfilled') setAllIngredients(ingRes.value);
+      if (extraRes.status === 'fulfilled') setExtraCostItems(extraRes.value);
+      if (purchRes.status === 'fulfilled') setPurchasesHistory(purchRes.value);
+      else console.warn('ingredient_purchases no disponible aún (ejecuta el SQL de migración):', purchRes.reason?.message);
+      setLoading(false);
     }
     loadInitialData();
   }, []);

@@ -51,7 +51,6 @@ export async function registerProduction({ recipeId, unitsProduced, actualIngred
       // Obtener costos extras asociados a la receta
       const { data: recCosts, error: recCostsErr } = await supabase
         .from('recipe_extra_costs')
-        .from('recipe_extra_costs')
         .select('name, type, quantity')
         .eq('recipe_id', recipeId);
 
