@@ -87,6 +87,16 @@ export default function BalancePage() {
     const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
     const endDate = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
 
+    // Calcular el primer día del siguiente mes para límite de fecha seguro sin horas
+    let nextMonth = parseInt(month) + 1;
+    let nextYear = parseInt(year);
+    if (nextMonth > 12) {
+      nextMonth = 1;
+      nextYear += 1;
+    }
+    const nextMonthStr = String(nextMonth).padStart(2, '0');
+    const limitDate = `${nextYear}-${nextMonthStr}-01`;
+
     try {
       // A. Ingresos Reales: abonos recibidos en ventas en este rango de fechas
       // (Opcionalmente, podemos sumar los abonos recibidos, o el total si la venta es inmediata)
@@ -114,7 +124,7 @@ export default function BalancePage() {
           recipes (cost_price)
         `)
         .gte('created_at', startDate)
-        .lte('created_at', `${endDate} 23:59:59`);
+        .lt('created_at', limitDate);
 
       if (prodError) throw prodError;
 
