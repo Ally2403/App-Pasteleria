@@ -291,7 +291,7 @@
 
 @media (max-width: 768px) {
   .recipes-grid {
-    grid-template-columns: 1fr 1fr !important;
+    grid-template-columns: 1fr !important;
     gap: var(--space-2) !important;
   }
 

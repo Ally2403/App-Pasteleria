@@ -240,8 +240,14 @@
 
 @media (max-width: 768px) {
   .ingredients-grid {
-    grid-template-columns: 1fr !important; /* 1 sola columna - las tarjetas tienen demasiado contenido para 2 */
+    grid-template-columns: 1fr !important;
     gap: var(--space-2) !important;
+  }
+
+  /* Card body compacto */
+  .ingredient-card .card-body,
+  .ingredient-card > div {
+    padding: var(--space-2) !important;
   }
 
   .ingredient-card {
@@ -250,33 +256,50 @@
     width: 100% !important;
   }
 
-  .ingredient-card-name {
-    font-size: 0.9rem !important;
+  .ingredient-card-header {
+    margin-bottom: 6px !important;
   }
 
+  .ingredient-card-name {
+    font-size: 0.85rem !important;
+  }
+
+  /* Filas de info: en línea horizontal para ahorrar espacio vertical */
   .ingredient-info-row {
-    font-size: 0.8rem !important;
-    padding: 4px 0 !important;
+    font-size: 0.75rem !important;
+    padding: 2px 0 !important;
+  }
+
+  .ingredient-info-label {
+    font-size: 0.72rem !important;
+  }
+
+  .ingredient-info-value {
+    font-size: 0.72rem !important;
   }
 
   .ingredient-unit-price {
-    margin-top: var(--space-2) !important;
-    padding: var(--space-2) !important;
+    margin-top: 6px !important;
+    padding: 6px 8px !important;
   }
 
   .ingredient-unit-price-label {
-    font-size: 0.7rem !important;
+    font-size: 0.65rem !important;
   }
 
   .ingredient-unit-price-value {
-    font-size: 0.9rem !important;
+    font-size: 0.85rem !important;
   }
 
   .stock-section {
-    margin-top: var(--space-2) !important;
+    margin-top: 6px !important;
+  }
+
+  .stock-label {
+    font-size: 0.72rem !important;
   }
 
   .stock-value {
-    font-size: 0.85rem !important;
+    font-size: 0.8rem !important;
   }
 }

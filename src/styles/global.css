@@ -519,7 +519,7 @@ p  { line-height: var(--line-height-relaxed); }
     padding: var(--space-2) !important;
   }
 
-  /* Cuadrícula de ingredientes: 1 columna (cards muy completas) */
+  /* Cuadrícula de ingredientes: 1 columna */
   .ingredients-grid {
     display: grid !important;
     grid-template-columns: 1fr !important;
@@ -528,14 +528,13 @@ p  { line-height: var(--line-height-relaxed); }
     max-width: 100% !important;
   }
 
-  /* Cuadrícula de recetas: 2 columnas (cards más simples) */
+  /* Cuadrícula de recetas: 1 columna (igual que ingredientes) */
   .recipes-grid {
     display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
+    grid-template-columns: 1fr !important;
     gap: var(--space-2) !important;
     width: 100% !important;
     max-width: 100% !important;
-    box-sizing: border-box !important;
   }
 
   .ingredient-card,
