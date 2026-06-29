@@ -118,9 +118,9 @@ export default function BalancePage() {
       // B. Costos de producción de recetas del mes (ingredientes descontados en registros de producción)
       const { data: prodData, error: prodError } = await supabase
         .from('production_logs')
-        .select('id, created_at, actual_ingredients')
-        .gte('created_at', startDate)
-        .lt('created_at', limitDate);
+        .select('id, date, actual_ingredients')
+        .gte('date', startDate)
+        .lt('date', limitDate);
 
       if (prodError) throw prodError;
 
