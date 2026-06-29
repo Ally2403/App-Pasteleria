@@ -98,11 +98,10 @@ export default function BalancePage() {
     const limitDate = `${nextYear}-${nextMonthStr}-01`;
 
     try {
-      // A. Ingresos Reales: abonos recibidos en ventas en este rango de fechas
-      // (Opcionalmente, podemos sumar los abonos recibidos, o el total si la venta es inmediata)
+      // A. Ingresos Reales: ventas del mes (total cuando está pagada, 0 si está pendiente)
       const { data: salesData, error: salesError } = await supabase
         .from('sales')
-        .select('total, amount_paid, is_paid, sale_date')
+        .select('total, is_paid, sale_date')
         .gte('sale_date', startDate)
         .lte('sale_date', endDate);
 
@@ -110,9 +109,8 @@ export default function BalancePage() {
 
       let totalIncome = 0;
       salesData.forEach(sale => {
-        // Ingreso real es lo abonado o pagado
-        const amountPaidVal = sale.amount_paid ?? (sale.is_paid ? sale.total : 0);
-        totalIncome += amountPaidVal;
+        // Solo contar las ventas ya pagadas como ingreso real
+        totalIncome += sale.is_paid ? (sale.total || 0) : 0;
       });
 
       // B. Costos de producción de recetas del mes (ingredientes descontados en registros de producción)
@@ -146,8 +144,9 @@ export default function BalancePage() {
         });
       });
 
-      // C. Costos de plantillas / empaques aplicados en ventas entregadas del mes
-      // 1. Obtener items de ventas completadas del mes
+      // C. Costos de plantillas / empaques aplicados en ventas del mes
+      // La tabla recipe_extra_costs tiene: recipe_id, total (costo total del extra por receta)
+      // 1. Obtener items de ventas completadas del mes con su recipe_id
       const { data: salesItemsData, error: salesItemsError } = await supabase
         .from('sales')
         .select(`
@@ -159,58 +158,32 @@ export default function BalancePage() {
         `)
         .gte('sale_date', startDate)
         .lte('sale_date', endDate)
-        .eq('status', 'completed'); // Solo entregados
+        .eq('status', 'completed');
 
       if (salesItemsError) throw salesItemsError;
 
-      // 2. Obtener la tabla de asociación de costos extras de recetas
+      // 2. Obtener costos extras por receta (columnas reales: recipe_id, total)
       const { data: recipeExtraCostsData, error: recCostsError } = await supabase
         .from('recipe_extra_costs')
-        .select('recipe_id, extra_cost_item_id, quantity_used');
+        .select('recipe_id, total');
 
       if (recCostsError) throw recCostsError;
 
-      // 3. Obtener el catálogo de costos extras de Supabase
-      const { data: extraCostItemsData, error: itemsError } = await supabase
-        .from('extra_cost_items')
-        .select('id, price, quantity_sold');
-
-      if (itemsError) throw itemsError;
-
-      // Crear mapa de plantilla_id -> precio_unitario
-      const templateUnitPriceMap = {};
-      extraCostItemsData.forEach(item => {
-        const price = item.price || 0;
-        const qtySold = item.quantity_sold || 1;
-        templateUnitPriceMap[item.id] = price / qtySold;
-      });
-
-      // Crear mapa de receta_id -> lista de costos [ { quantity_used, unit_cost } ]
-      const recipeCostsMap = {};
+      // Crear mapa de receta_id -> suma de todos sus costos extras
+      const recipeTotalExtrasMap = {};
       recipeExtraCostsData.forEach(recCost => {
         const recipeId = recCost.recipe_id;
-        const unitCost = templateUnitPriceMap[recCost.extra_cost_item_id] || 0;
-        
-        if (!recipeCostsMap[recipeId]) {
-          recipeCostsMap[recipeId] = [];
-        }
-        recipeCostsMap[recipeId].push({
-          quantityUsed: recCost.quantity_used || 0,
-          unitCost
-        });
+        recipeTotalExtrasMap[recipeId] = (recipeTotalExtrasMap[recipeId] || 0) + (recCost.total || 0);
       });
 
-      // 4. Calcular el total de costos de plantillas aplicadas a las ventas
+      // 3. Calcular costo de plantillas/empaques multiplicado por unidades vendidas
       let totalTemplatesCost = 0;
       salesItemsData.forEach(sale => {
         (sale.sale_items || []).forEach(item => {
           const qty = item.quantity || 0;
           const recipeId = item.recipe_id;
-          const costs = recipeCostsMap[recipeId] || [];
-          
-          costs.forEach(c => {
-            totalTemplatesCost += (c.quantityUsed * c.unitCost) * qty;
-          });
+          const extraCostPerUnit = recipeTotalExtrasMap[recipeId] || 0;
+          totalTemplatesCost += extraCostPerUnit * qty;
         });
       });
 
