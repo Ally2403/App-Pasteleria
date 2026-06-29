@@ -272,66 +272,64 @@ export default function ProductionPage() {
               </p>
             </div>
 
-            <div className="production-ingredients-list">
-              <div
-                className="production-ingredient-row"
-                style={{
-                  background: 'var(--color-warm-50)',
-                  fontWeight: 'bold',
-                  borderBottom: '2px solid var(--color-border)',
-                }}
-              >
-                <div className="production-ing-name">Ingrediente</div>
-                <div className="production-ing-stock">Stock actual</div>
-                <div className="production-ing-needed">Sugerido Receta</div>
-                <div className="production-ing-input-header">Gastado Real</div>
-              </div>
-
-              {(selectedRecipe.recipe_ingredients ?? []).map((ri) => {
-                const ing = ri.ingredients;
-                const stock = ing?.inventory?.[0]?.current_stock ?? 0;
-                const needed = ri.quantity_used * batches;
-                const isInsufficient = stock < needed;
-                
-                return (
-                  <div key={ri.id} className="production-ingredient-row">
-                    <div className="production-ing-name">
-                      {ing?.name}
-                    </div>
+            <div className="table-responsive" style={{ marginBottom: 'var(--space-5)' }}>
+              <table className="dashboard-table">
+                <thead>
+                  <tr>
+                    <th>Ingrediente</th>
+                    <th>Stock actual</th>
+                    <th>Sugerido Receta</th>
+                    <th>Gastado Real</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(selectedRecipe.recipe_ingredients ?? []).map((ri) => {
+                    const ing = ri.ingredients;
+                    const stock = ing?.inventory?.[0]?.current_stock ?? 0;
+                    const needed = ri.quantity_used * batches;
+                    const isInsufficient = stock < needed;
                     
-                    <div className="production-ing-stock">
-                      <span className={isInsufficient ? 'text-error font-bold' : 'text-success'}>
-                        {formatQuantity(stock, ing?.unit)}
-                      </span>
-                    </div>
-
-                    <div className="production-ing-needed">
-                      {formatQuantity(needed, ing?.unit)}
-                    </div>
-
-                    <div className="production-ing-input-wrapper">
-                      <Input
-                        type="number"
-                        min="0"
-                        step="any"
-                        required
-                        value={ingredientQuantities[ri.id] ?? ''}
-                        onChange={(e) => handleQuantityChange(ri.id, e.target.value)}
-                        style={{ width: '90px' }}
-                      />
-                      <span className="production-ing-input-unit">{ing?.unit}</span>
-                      <button
-                        type="button"
-                        className="production-use-suggested-btn"
-                        title={`Usar cantidad sugerida: ${formatQuantity(needed, ing?.unit)}`}
-                        onClick={() => handleQuantityChange(ri.id, needed)}
-                      >
-                        ✓ Sugerido
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+                    return (
+                      <tr key={ri.id}>
+                        <td style={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>
+                          {ing?.name}
+                        </td>
+                        <td style={{ whiteSpace: 'nowrap' }}>
+                          <span style={{ fontWeight: 'bold' }} className={isInsufficient ? 'text-error font-bold' : 'text-success'}>
+                            {formatQuantity(stock, ing?.unit)}
+                          </span>
+                        </td>
+                        <td style={{ whiteSpace: 'nowrap' }}>
+                          {formatQuantity(needed, ing?.unit)}
+                        </td>
+                        <td style={{ whiteSpace: 'nowrap' }}>
+                          <div className="production-ing-input-wrapper" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="any"
+                              required
+                              value={ingredientQuantities[ri.id] ?? ''}
+                              onChange={(e) => handleQuantityChange(ri.id, e.target.value)}
+                              style={{ width: '80px', padding: '4px 8px', height: '32px' }}
+                            />
+                            <span className="production-ing-input-unit" style={{ minWidth: '24px' }}>{ing?.unit}</span>
+                            <button
+                              type="button"
+                              className="production-use-suggested-btn"
+                              title={`Usar cantidad sugerida: ${formatQuantity(needed, ing?.unit)}`}
+                              onClick={() => handleQuantityChange(ri.id, needed)}
+                              style={{ padding: '4px 8px', fontSize: '11px', display: 'flex', alignItems: 'center' }}
+                            >
+                              ✓ Sugerido
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
 
             <Field label="Notas adicionales (opcional)">
