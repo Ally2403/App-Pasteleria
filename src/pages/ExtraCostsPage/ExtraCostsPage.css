@@ -134,3 +134,49 @@
   grid-template-columns: 1fr 1fr !important;
   gap: var(--space-3) !important;
 }
+
+@media (max-width: 768px) {
+  .extra-costs-layout-grid-custom {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-3) !important;
+  }
+
+  .extra-cost-card-body {
+    padding: var(--space-3) !important;
+    gap: var(--space-3) !important;
+  }
+
+  .extra-cost-main-info {
+    gap: var(--space-2) !important;
+  }
+
+  .extra-cost-icon {
+    font-size: 1.4rem !important;
+    padding: var(--space-2) !important;
+  }
+
+  .extra-cost-name {
+    font-size: var(--font-size-base) !important;
+  }
+
+  .extra-cost-stock-section {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: var(--space-2) !important;
+    padding: var(--space-2) var(--space-3) !important;
+  }
+
+  .extra-cost-form-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .extra-cost-footer-actions {
+    justify-content: stretch !important;
+  }
+
+  .extra-cost-footer-actions button {
+    flex: 1 !important;
+    justify-content: center !important;
+  }
+}
+
