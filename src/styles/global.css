@@ -264,3 +264,44 @@ p  { line-height: var(--line-height-relaxed); }
   color: var(--color-rose-700);
 }
 
+/* ====================================================
+   FORCE GRID LAYOUTS FOR PRODUCTION
+   ==================================================== */
+.profile-layout-grid-custom {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: var(--space-6) !important;
+  align-items: start !important;
+  width: 100% !important;
+}
+
+@media (max-width: 768px) {
+  .profile-layout-grid-custom {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-4) !important;
+  }
+}
+
+.extra-costs-layout-grid-custom {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+  gap: var(--space-4) !important;
+  margin-top: var(--space-4) !important;
+  width: 100% !important;
+}
+
+.extra-cost-card-body {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: var(--space-4) !important;
+}
+
+.extra-cost-form-row {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: var(--space-3) !important;
+}
+
+
