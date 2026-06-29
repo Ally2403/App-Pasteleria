@@ -304,4 +304,39 @@ p  { line-height: var(--line-height-relaxed); }
   gap: var(--space-3) !important;
 }
 
+/* ── Balance Page Custom Grid Layouts ── */
+.balance-layout-metrics-grid-custom {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: var(--space-4) !important;
+  width: 100% !important;
+}
+
+@media (max-width: 768px) {
+  .balance-layout-metrics-grid-custom {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.balance-layout-content-grid-custom {
+  display: grid !important;
+  grid-template-columns: 2fr 1fr !important;
+  gap: var(--space-6) !important;
+  width: 100% !important;
+}
+
+@media (max-width: 1024px) {
+  .balance-layout-content-grid-custom {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.balance-layout-expenses-breakdown-grid-custom {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+  gap: var(--space-4) !important;
+  width: 100% !important;
+}
+
+
 

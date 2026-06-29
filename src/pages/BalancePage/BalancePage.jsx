@@ -327,7 +327,7 @@ export default function BalancePage() {
             <LoadingSpinner size="md" text="Calculando balance..." />
           </div>
         ) : (
-          <div className="balance-metrics-grid">
+          <div className="balance-layout-metrics-grid-custom">
             <div className="balance-metric-box income">
               <span className="balance-metric-label">💵 Ingresos Reales</span>
               <span className="balance-metric-value">{formatCurrency(balanceMetrics.income)}</span>
@@ -353,7 +353,7 @@ export default function BalancePage() {
       {!loading && (
         <div className="expenses-breakdown-section">
           <h3>Gastos Desglosados</h3>
-          <div className="expenses-breakdown-grid">
+          <div className="balance-layout-expenses-breakdown-grid-custom">
             <div className="expense-breakdown-box">
               <span className="expense-breakdown-title">🍳 Costo de Producción</span>
               <span className="expense-breakdown-val">{formatCurrency(balanceMetrics.productionCost)}</span>
@@ -380,7 +380,7 @@ export default function BalancePage() {
       )}
 
       {/* ── Listado de Compras no programadas ── */}
-      <div className="balance-content-grid">
+      <div className="balance-layout-content-grid-custom">
         <div className="purchases-list-card">
           <Card>
             <CardHeader>
