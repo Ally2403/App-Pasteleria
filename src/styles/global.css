@@ -195,19 +195,23 @@ p  { line-height: var(--line-height-relaxed); }
   }
 
   .app-content {
-    padding: var(--space-2) var(--space-2) var(--space-4) !important;
+    padding: 8px 8px 72px !important;
     max-width: 100vw !important;
     width: 100% !important;
     box-sizing: border-box !important;
-    overflow-x: hidden !important; /* Bloquear el scroll en el contenido general */
+    overflow-x: hidden !important;
   }
 
-  /* Ajustar tarjetas para evitar padding excesivo en móviles y forzar contención */
+  /* Tarjetas súper compactas en móvil */
   .card, [class*="card"] {
-    padding: var(--space-3) !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
-    overflow: hidden !important; /* Evitar desborde lateral */
+    overflow: hidden !important;
+  }
+
+  /* CardBody padding mínimo */
+  .card-body {
+    padding: 10px !important;
   }
 
   /* Excepción para tarjetas que tienen buscadores selectores interactivos */
@@ -218,17 +222,22 @@ p  { line-height: var(--line-height-relaxed); }
   }
 
   /* ── Tipografía más pequeña en móvil ── */
-  h1 { font-size: var(--font-size-xl) !important; }
-  h2 { font-size: var(--font-size-lg) !important; }
-  h3 { font-size: var(--font-size-base) !important; }
+  h1 { font-size: 1.1rem !important; margin-bottom: 2px !important; }
+  h2 { font-size: 1rem !important; }
+  h3 { font-size: 0.9rem !important; }
 
   /* ── Page Header responsive ── */
   .page-header {
     flex-direction: column !important;
     align-items: flex-start !important;
-    gap: var(--space-2) !important;
-    margin-bottom: var(--space-3) !important;
+    gap: 6px !important;
+    margin-bottom: 8px !important;
     width: 100% !important;
+  }
+
+  .page-header-left p {
+    font-size: 0.75rem !important;
+    margin: 0 !important;
   }
 
   .page-header > div,
@@ -239,18 +248,20 @@ p  { line-height: var(--line-height-relaxed); }
   .page-header button {
     width: 100% !important;
     justify-content: center !important;
+    padding: 8px !important;
+    font-size: 0.85rem !important;
   }
 
   /* ── Dashboard responsive ── */
   .dashboard-grid {
     grid-template-columns: 1fr 1fr !important;
-    gap: var(--space-2) !important;
+    gap: 6px !important;
   }
 
   .dashboard-welcome {
-    padding: var(--space-3) !important;
+    padding: 10px !important;
     flex-direction: column !important;
-    gap: var(--space-1) !important;
+    gap: 4px !important;
   }
 
   .dashboard-welcome-left h1 {
@@ -262,12 +273,12 @@ p  { line-height: var(--line-height-relaxed); }
   }
 
   .dashboard-welcome-icon {
-    font-size: 1.8rem !important;
+    font-size: 1.5rem !important;
   }
 
   .dashboard-row {
     grid-template-columns: 1fr !important;
-    gap: var(--space-3) !important;
+    gap: 8px !important;
   }
 
   /* ── Estadísticas / Metric Boxes responsive ── */
