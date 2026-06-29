@@ -202,12 +202,12 @@ p  { line-height: var(--line-height-relaxed); }
     overflow-x: hidden !important; /* Bloquear el scroll en el contenido general */
   }
 
-  /* Ajustar tarjetas para evitar padding excesivo en móviles y forzar contención de ancho */
+  /* Ajustar tarjetas para evitar padding excesivo en móviles y permitir dropdowns visibles */
   .card, [class*="card"] {
     padding: var(--space-3) !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
-    overflow: hidden !important;
+    overflow: visible !important; /* Permitir que los buscadores flotantes se desplieguen */
   }
 
   /* ── Tipografía más pequeña en móvil ── */
