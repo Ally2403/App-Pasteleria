@@ -118,21 +118,32 @@ export default function BalancePage() {
       // B. Costos de producción de recetas del mes (ingredientes descontados en registros de producción)
       const { data: prodData, error: prodError } = await supabase
         .from('production_logs')
-        .select(`
-          id, 
-          created_at,
-          recipes (cost_price)
-        `)
+        .select('id, created_at, actual_ingredients')
         .gte('created_at', startDate)
         .lt('created_at', limitDate);
 
       if (prodError) throw prodError;
 
+      // Obtener los precios unitarios actuales de los ingredientes para valuar el costo
+      const { data: ingredientsData, error: ingError } = await supabase
+        .from('ingredients')
+        .select('id, unit_price');
+
+      if (ingError) throw ingError;
+
+      // Crear mapa rápido de id_ingrediente -> unit_price
+      const ingredientPriceMap = {};
+      ingredientsData.forEach(ing => {
+        ingredientPriceMap[ing.id] = ing.unit_price || 0;
+      });
+
       let totalProductionCost = 0;
       prodData.forEach(log => {
-        if (log.recipes?.cost_price) {
-          totalProductionCost += log.recipes.cost_price;
-        }
+        const actualIngredients = log.actual_ingredients || [];
+        actualIngredients.forEach(item => {
+          const unitPrice = ingredientPriceMap[item.ingredientId] || 0;
+          totalProductionCost += (item.quantityUsed * unitPrice);
+        });
       });
 
       // C. Costos de plantillas / empaques aplicados en ventas entregadas del mes
