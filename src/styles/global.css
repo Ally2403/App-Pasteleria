@@ -323,80 +323,83 @@ p  { line-height: var(--line-height-relaxed); }
     gap: var(--space-2) !important;
   }
 
-  /* ── Tablas transformadas en bloques verticales legibles en móvil ── */
+  /* ── Tablas firmes y tradicionales con líneas claras y scroll horizontal en móvil ── */
   .table-responsive,
   .purchases-table-wrapper {
-    overflow-x: visible !important;
-    max-width: 100% !important;
-    border: none !important;
+    overflow-x: auto !important;
+    display: block !important;
+    width: 100% !important;
+    border: 1px solid var(--color-border-light) !important;
+    border-radius: var(--radius-md) !important;
+    background: var(--color-surface) !important;
+    -webkit-overflow-scrolling: touch !important;
+    margin-bottom: var(--space-4) !important;
   }
 
   .purchases-table,
   .dashboard-table {
-    display: block !important;
+    display: table !important;
     width: 100% !important;
+    min-width: 600px !important; /* Forzar ancho mínimo firme para que las columnas no se superpongan ni aplasten */
+    border-collapse: collapse !important;
   }
 
   .purchases-table thead,
   .dashboard-table thead {
-    display: none !important; /* Ocultar encabezados de tabla */
+    display: table-header-group !important;
   }
 
   .purchases-table tbody,
   .dashboard-table tbody {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: var(--space-2) !important;
-    width: 100% !important;
+    display: table-row-group !important;
+    width: auto !important;
   }
 
   .purchases-table tr,
   .dashboard-table tr {
-    display: flex !important;
-    flex-direction: column !important;
-    background: var(--color-surface) !important;
-    border: 1px solid var(--color-border-light) !important;
-    border-radius: var(--radius-md) !important;
+    display: table-row !important;
+    background: transparent !important;
+    border-bottom: 1px solid var(--color-border-light) !important;
+  }
+
+  .purchases-table th,
+  .dashboard-table th {
+    display: table-cell !important;
+    background: var(--color-rose-50) !important;
+    color: var(--color-text-secondary) !important;
+    font-weight: var(--font-weight-bold) !important;
     padding: var(--space-2) var(--space-3) !important;
-    gap: 4px !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-    box-shadow: var(--shadow-xs) !important;
+    font-size: 0.72rem !important;
+    text-transform: uppercase !important;
+    border-bottom: 2px solid var(--color-border) !important;
+    white-space: nowrap !important;
   }
 
   .purchases-table td,
   .dashboard-table td {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    border-bottom: none !important;
-    padding: var(--space-1) 0 !important;
-    font-size: var(--font-size-sm) !important;
-    text-align: right !important;
-    width: 100% !important;
+    display: table-cell !important;
+    padding: var(--space-2) var(--space-3) !important;
+    font-size: 0.75rem !important;
+    text-align: left !important;
+    vertical-align: middle !important;
+    border-bottom: 1px solid var(--color-border-light) !important;
+    white-space: nowrap !important; /* Evitar que el texto se quiebre a la fuerza */
     background: transparent !important;
+    width: auto !important;
   }
 
-  /* Mostrar nombres de campo antes de cada valor */
+  /* Quitar las pseudo-etiquetas anteriores de tarjetas */
   .purchases-table td::before,
   .dashboard-table td::before {
-    content: attr(data-label) !important;
-    font-weight: var(--font-weight-bold) !important;
-    color: var(--color-text-secondary) !important;
-    text-align: left !important;
-    margin-right: var(--space-4) !important;
-  }
-
-  /* Excepción para cuando no hay compras */
-  .purchases-table td.purchase-list-empty,
-  .dashboard-table td.empty-state {
-    display: block !important;
-    text-align: center !important;
-  }
-
-  .purchases-table td.purchase-list-empty::before,
-  .dashboard-table td.empty-state::before {
     display: none !important;
+  }
+
+  /* Alinear celdas numéricas a la derecha para legibilidad */
+  .purchases-table td[style*="text-align: right"],
+  .dashboard-table td[style*="text-align: right"],
+  .purchases-table td:nth-last-child(2),
+  .dashboard-table td:nth-last-child(2) {
+    text-align: right !important;
   }
 
   /* ── Modales responsive ── */
