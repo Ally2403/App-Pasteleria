@@ -525,9 +525,9 @@ p  { line-height: var(--line-height-relaxed); }
   .ingredient-card-name,
   .recipe-card-name {
     font-size: 0.9rem !important;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
   }
 
   .recipe-card-emoji {
@@ -536,6 +536,8 @@ p  { line-height: var(--line-height-relaxed); }
   }
 
   .recipe-card-stats {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
     gap: 4px !important;
     margin-bottom: var(--space-2) !important;
   }
