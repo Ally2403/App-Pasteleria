@@ -202,12 +202,19 @@ p  { line-height: var(--line-height-relaxed); }
     overflow-x: hidden !important; /* Bloquear el scroll en el contenido general */
   }
 
-  /* Ajustar tarjetas para evitar padding excesivo en móviles y permitir dropdowns visibles */
+  /* Ajustar tarjetas para evitar padding excesivo en móviles y forzar contención */
   .card, [class*="card"] {
     padding: var(--space-3) !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
-    overflow: visible !important; /* Permitir que los buscadores flotantes se desplieguen */
+    overflow: hidden !important; /* Evitar desborde lateral */
+  }
+
+  /* Excepción para tarjetas que tienen buscadores selectores interactivos */
+  .production-recipe-select-card,
+  .modal-container,
+  .modal-body {
+    overflow: visible !important;
   }
 
   /* ── Tipografía más pequeña en móvil ── */
