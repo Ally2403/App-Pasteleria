@@ -1,14 +1,15 @@
 .extra-costs-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--space-4);
-  margin-top: var(--space-4);
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+  gap: var(--space-4) !important;
+  margin-top: var(--space-4) !important;
 }
 
 .extra-cost-card-body {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: space-between !important;
+  align-items: center !important;
   padding: var(--space-4) !important;
 }
 
@@ -57,7 +58,7 @@
 }
 
 .extra-cost-form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-3);
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: var(--space-3) !important;
 }
