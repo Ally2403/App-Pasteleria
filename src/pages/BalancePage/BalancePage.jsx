@@ -113,8 +113,8 @@ export default function BalancePage() {
           created_at,
           recipes (cost_price)
         `)
-        .gte('created_at', `${startDate}T00:00:00Z`)
-        .lte('created_at', `${endDate}T23:59:59Z`);
+        .gte('created_at', startDate)
+        .lte('created_at', `${endDate} 23:59:59`);
 
       if (prodError) throw prodError;
 
