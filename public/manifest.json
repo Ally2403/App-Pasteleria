@@ -3,13 +3,13 @@
   "name": "Pastelería Mami - Gestión e Inventario",
   "icons": [
     {
-      "src": "/favicon.svg",
+      "src": "/favicon.svg?v=2",
       "type": "image/svg+xml",
       "sizes": "any",
       "purpose": "any"
     },
     {
-      "src": "/favicon.svg",
+      "src": "/favicon.svg?v=2",
       "type": "image/svg+xml",
       "sizes": "512x512",
       "purpose": "maskable"
