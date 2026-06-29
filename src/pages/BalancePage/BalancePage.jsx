@@ -377,8 +377,8 @@ export default function BalancePage() {
                   <p>Registra compras como moldes, servicios, etc., usando el botón superior.</p>
                 </div>
               ) : (
-                <div className="purchases-table-wrapper">
-                  <table className="purchases-table">
+                <div className="table-responsive">
+                  <table className="dashboard-table">
                     <thead>
                       <tr>
                         <th>Fecha</th>

@@ -340,7 +340,7 @@ p  { line-height: var(--line-height-relaxed); }
   .dashboard-table {
     display: table !important;
     width: 100% !important;
-    min-width: 600px !important; /* Forzar ancho mínimo firme para que las columnas no se superpongan ni aplasten */
+    min-width: 640px !important;
     border-collapse: collapse !important;
   }
 

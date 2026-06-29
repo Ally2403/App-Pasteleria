@@ -38,21 +38,26 @@
 /* ── Filters ── */
 .sales-filters-row {
   display: flex !important;
-  flex-direction: row !important;
-  gap: var(--space-3) !important;
+  flex-direction: column !important;
+  gap: var(--space-2) !important;
   margin-bottom: var(--space-4) !important;
-  flex-wrap: wrap !important;
   width: 100% !important;
-  align-items: center !important;
 }
 
-.filter-input-wrapper { 
-  flex: 2 !important; 
-  min-width: 200px !important; 
+.filter-input-wrapper {
+  width: 100% !important;
 }
-.filter-select-wrapper { 
-  flex: 1 !important; 
-  min-width: 150px !important; 
+
+.sales-filters-selects {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: var(--space-2) !important;
+  width: 100% !important;
+}
+
+.filter-select-wrapper {
+  flex: 1 !important;
+  min-width: 0 !important;
 }
 
 /* ── Sales List ── */
@@ -246,14 +251,64 @@
 }
 
 .badge-action-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   background: none;
-  border: none;
-  padding: 0;
+  border: 2px solid transparent;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
   cursor: pointer;
-  transition: opacity 0.2s ease;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-xs);
+  transition: all 0.15s ease;
+  gap: 4px;
+  min-width: 90px;
 }
 
-.badge-action-btn:hover { opacity: 0.8; }
+/* Estado Pagado */
+.badge-action-btn:has(.badge--success) {
+  border-color: #16a34a !important;
+  background: #dcfce7 !important;
+  color: #15803d !important;
+}
+.badge-action-btn:has(.badge--success):hover {
+  background: #bbf7d0 !important;
+  transform: scale(1.03);
+}
+
+/* Estado Por Cobrar / Pendiente */
+.badge-action-btn:has(.badge--danger) {
+  border-color: #dc2626 !important;
+  background: #fee2e2 !important;
+  color: #b91c1c !important;
+}
+.badge-action-btn:has(.badge--danger):hover {
+  background: #fecaca !important;
+  transform: scale(1.03);
+}
+
+/* Estado Entregado */
+.badge-action-btn:has(.badge--info) {
+  border-color: #2563eb !important;
+  background: #dbeafe !important;
+  color: #1d4ed8 !important;
+}
+.badge-action-btn:has(.badge--info):hover {
+  background: #bfdbfe !important;
+  transform: scale(1.03);
+}
+
+/* Estado Pendiente entrega */
+.badge-action-btn:has(.badge--warning) {
+  border-color: #d97706 !important;
+  background: #fef3c7 !important;
+  color: #b45309 !important;
+}
+.badge-action-btn:has(.badge--warning):hover {
+  background: #fde68a !important;
+  transform: scale(1.03);
+}
 
 .sale-card-actions-right {
   display: flex;

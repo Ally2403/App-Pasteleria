@@ -400,24 +400,12 @@ export default function ProductionPage() {
 
                     return (
                       <tr key={log.id}>
-                        <td>
-                          <div className="history-log-date">{formatDateTime(log.date)}</div>
-                        </td>
-                        <td>
-                          <div className="history-log-recipe">{log.recipes?.name ?? 'Receta eliminada'}</div>
-                        </td>
-                        <td className="font-bold text-primary">
-                          +{log.units_produced} unid.
-                        </td>
-                        <td>
-                          <div className="history-log-ingredients-summary">
-                            {log.actual_ingredients?.length ?? 0} ingredientes
-                          </div>
-                        </td>
-                        <td>
-                          <div className="history-log-notes" title={log.notes}>
-                            {log.notes || '—'}
-                          </div>
+                        <td style={{ whiteSpace: 'nowrap' }}>{formatDateTime(log.date)}</td>
+                        <td style={{ fontWeight: 'var(--font-weight-bold)', whiteSpace: 'nowrap' }}>{log.recipes?.name ?? 'Receta eliminada'}</td>
+                        <td style={{ fontWeight: 'bold', color: 'var(--color-success)', whiteSpace: 'nowrap' }}>+{log.units_produced} unid.</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{log.actual_ingredients?.length ?? 0} ingredientes</td>
+                        <td style={{ maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <span title={log.notes}>{log.notes || '—'}</span>
                         </td>
                         <td style={{ textAlign: 'center' }}>
                           <button

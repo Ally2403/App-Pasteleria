@@ -417,27 +417,29 @@ export default function SalesPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <div className="filter-select-wrapper">
-              <Select
-                id="sale-status-filter"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <option value="">Filtrar por entrega (Todos)</option>
-                <option value="completed">✓ Entregados</option>
-                <option value="pending">⏳ Pendientes</option>
-              </Select>
-            </div>
-            <div className="filter-select-wrapper">
-              <Select
-                id="sale-payment-filter"
-                value={paymentFilter}
-                onChange={(e) => setPaymentFilter(e.target.value)}
-              >
-                <option value="">Filtrar por pago (Todos)</option>
-                <option value="paid">✓ Pagados</option>
-                <option value="pending">⏳ Falta por pagar</option>
-              </Select>
+            <div className="sales-filters-selects">
+              <div className="filter-select-wrapper">
+                <Select
+                  id="sale-status-filter"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <option value="">Filtrar por entrega (Todos)</option>
+                  <option value="completed">✓ Entregados</option>
+                  <option value="pending">⏳ Pendientes</option>
+                </Select>
+              </div>
+              <div className="filter-select-wrapper">
+                <Select
+                  id="sale-payment-filter"
+                  value={paymentFilter}
+                  onChange={(e) => setPaymentFilter(e.target.value)}
+                >
+                  <option value="">Filtrar por pago (Todos)</option>
+                  <option value="paid">✓ Pagados</option>
+                  <option value="pending">⏳ Falta por pagar</option>
+                </Select>
+              </div>
             </div>
           </div>
 
