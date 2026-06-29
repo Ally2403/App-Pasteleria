@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { getIngredients } from '../../services/ingredients.service';
 import { getDetailedRecipes } from '../../services/recipes.service';
 import { getProductionLogs } from '../../services/production.service';
-import { getSalesStats, getRecentSales } from '../../services/sales.service';
+import { getSalesStats, getRecentSales, getUpcomingDeliveries, getSales } from '../../services/sales.service';
 import { calcRecipeSummary, getRecipePricing } from '../../utils/calculations';
 import { formatCurrency, formatDateTime, formatDate } from '../../utils/formatters';
 import { Card, CardBody, CardHeader, StatCard } from '../../components/ui/Card';
@@ -21,34 +21,76 @@ export default function DashboardPage() {
   const [ingredients, setIngredients] = useState([]);
   const [productionLogs, setProductionLogs] = useState([]);
   const [recentSales, setRecentSales] = useState([]);
+  const [upcomingDeliveries, setUpcomingDeliveries] = useState([]);
+  const [partnerPeriodSales, setPartnerPeriodSales] = useState([]);
   const [stats, setStats] = useState({ salesCount: 0, totalRevenue: 0, paidRevenue: 0, pendingRevenue: 0, byProduct: [] });
-  const [period, setPeriod] = useState('month');
+
   const [loading, setLoading] = useState(true);
 
+  // Date Filter States
+  const [filterType, setFilterType] = useState('predefined'); // 'predefined' | 'custom-day' | 'custom-month' | 'custom-range'
+  const [period, setPeriod] = useState('month'); // 'day' | 'week' | 'month' | 'year'
+  const [selectedDay, setSelectedDay] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().split('T')[0].substring(0, 7));
+  const [rangeStart, setRangeStart] = useState(new Date().toISOString().split('T')[0]);
+  const [rangeEnd, setRangeEnd] = useState(new Date().toISOString().split('T')[0]);
+
+  // Compute config dynamically for getSalesStats
+  const periodConfig = useMemo(() => {
+    if (filterType === 'predefined') {
+      return period;
+    }
+    if (filterType === 'custom-day') {
+      return { startDate: selectedDay, endDate: selectedDay };
+    }
+    if (filterType === 'custom-month') {
+      const [year, month] = selectedMonth.split('-');
+      if (!year || !month) return period;
+      const startDate = `${year}-${month}-01`;
+      const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+      const endDate = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
+      return { startDate, endDate };
+    }
+    if (filterType === 'custom-range') {
+      if (rangeStart > rangeEnd) {
+        return null; // Invalid range
+      }
+      return { startDate: rangeStart, endDate: rangeEnd };
+    }
+    return period;
+  }, [filterType, period, selectedDay, selectedMonth, rangeStart, rangeEnd]);
+
   const loadDashboardData = async () => {
+    if (!periodConfig) return; // Wait for valid range
     setLoading(true);
     try {
       if (isAdmin) {
-        const [recipesData, ingredientsData, logsData, statsData, recentSalesData] = await Promise.all([
+        const [recipesData, ingredientsData, logsData, statsData, recentSalesData, deliveriesData] = await Promise.all([
           getDetailedRecipes(),
           getIngredients(),
           getProductionLogs(),
-          getSalesStats(period),
+          getSalesStats(periodConfig),
           getRecentSales(5),
+          getUpcomingDeliveries(14),
         ]);
         setRecipes(recipesData);
         setIngredients(ingredientsData);
         setProductionLogs(logsData.slice(0, 5));
         setStats(statsData);
         setRecentSales(recentSalesData);
+        setUpcomingDeliveries(deliveriesData);
       } else if (isPartner) {
-        // Load partner's specific detailed recipes
-        const recipesData = await getDetailedRecipes({ role, userId: user?.id });
+        const filters = typeof periodConfig === 'object' ? periodConfig : {};
+        const [recipesData, recentSalesData, deliveriesData, salesData] = await Promise.all([
+          getDetailedRecipes({ role, userId: user?.id }),
+          getRecentSales(20),
+          getUpcomingDeliveries(14),
+          getSales(filters).catch(() => []),
+        ]);
         setRecipes(recipesData);
-
-        // Load recent sales and stats for Jhon
-        const recentSalesData = await getRecentSales(20); // Load more to filter in JS
         setRecentSales(recentSalesData);
+        setUpcomingDeliveries(deliveriesData);
+        setPartnerPeriodSales(salesData);
       }
     } catch (error) {
       console.error('Error al cargar datos del Dashboard:', error);
@@ -59,9 +101,9 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadDashboardData();
-  }, [role, user, isAdmin, isPartner, period]);
+  }, [role, user, isAdmin, isPartner, periodConfig]);
 
-  // Recalculate stats when period changes (for admin) or compute partner stats
+  // Recalculate partner stats based on current period stats
   const partnerStats = useMemo(() => {
     if (!isPartner) return null;
 
@@ -69,11 +111,11 @@ export default function DashboardPage() {
     const recipeProfitMap = {};
     recipes.forEach((recipe) => {
       const summary = calcRecipeSummary({
-        ingredients: recipe.recipe_ingredients.map((ri) => ({
+        ingredients: (recipe.recipe_ingredients ?? []).map((ri) => ({
           unitPrice: ri.ingredients?.unit_price ?? 0,
           quantityUsed: ri.quantity_used,
         })),
-        extraCosts: recipe.recipe_extra_costs.map((rec) => ({
+        extraCosts: (recipe.recipe_extra_costs ?? []).map((rec) => ({
           quantity: rec.quantity,
           unitPrice: rec.unit_price,
           type: rec.type,
@@ -84,35 +126,40 @@ export default function DashboardPage() {
         hasPartner: recipe.has_partner,
       });
 
+      const units = recipe.units_per_batch || 1;
       recipeProfitMap[recipe.id] = {
-        partnerProfitPerUnit: summary.partnerProfit / recipe.units_per_batch,
+        partnerProfitPerUnit: summary.partnerProfit / units,
         unitCost: summary.unitCost,
         sellingPrice: summary.sellingPrice,
         recipeName: recipe.name,
       };
     });
 
-    // Filter recent sales containing Jhon's partner products
-    const jhonSales = recentSales.filter((sale) =>
-      sale.sale_items?.some((item) => recipeProfitMap[item.recipes?.id])
-    );
-
-    // Compute Jhon's revenue and profit splits
+    // Sum partner sales in the current period sales
     let totalJhonSalesRevenue = 0;
+    let paidRevenue = 0;
     let totalJhonProfit = 0;
+    let salesCount = 0;
     const byProductMap = {};
 
-    jhonSales.forEach((sale) => {
-      sale.sale_items?.forEach((item) => {
-        const recipeId = item.recipes?.id;
-        const profitInfo = recipeProfitMap[recipeId];
-        if (!profitInfo) return;
+    partnerPeriodSales.forEach((sale) => {
+      const totalAmount = sale.total ?? 0;
+      const amountPaid = sale.amount_paid ?? (sale.is_paid ? totalAmount : 0);
+      const paymentFactor = totalAmount > 0 ? (amountPaid / totalAmount) : 0;
 
-        const itemRevenue = item.quantity * item.unit_price;
-        const itemProfit = profitInfo.partnerProfitPerUnit * item.quantity;
+      (sale.sale_items ?? []).forEach((item) => {
+        const recipeId = item.recipes?.id || item.recipe_id;
+        const profitInfo = recipeProfitMap[recipeId];
+        if (!profitInfo) return; // Only count Jhon's partner recipes
+
+        const itemQty = item.quantity ?? 0;
+        const itemRevenue = item.subtotal ?? (itemQty * (item.unit_price ?? 0));
+        const itemProfit = profitInfo.partnerProfitPerUnit * itemQty;
 
         totalJhonSalesRevenue += itemRevenue;
+        paidRevenue += itemRevenue * paymentFactor;
         totalJhonProfit += itemProfit;
+        salesCount += itemQty;
 
         if (!byProductMap[recipeId]) {
           byProductMap[recipeId] = {
@@ -122,21 +169,28 @@ export default function DashboardPage() {
             totalProfit: 0,
           };
         }
-        byProductMap[recipeId].totalQty += item.quantity;
+        byProductMap[recipeId].totalQty += itemQty;
         byProductMap[recipeId].totalRevenue += itemRevenue;
         byProductMap[recipeId].totalProfit += itemProfit;
       });
     });
 
+    // Filter recent sales containing Jhon's partner products
+    const jhonSales = recentSales.filter((sale) =>
+      sale.sale_items?.some((item) => recipeProfitMap[item.recipes?.id || item.recipe_id])
+    );
+
     return {
-      salesCount: jhonSales.length,
+      salesCount,
       totalRevenue: totalJhonSalesRevenue,
+      paidRevenue,
+      pendingRevenue: Math.max(0, totalJhonSalesRevenue - paidRevenue),
       totalProfit: totalJhonProfit,
       recentSales: jhonSales.slice(0, 5),
       byProduct: Object.values(byProductMap).sort((a, b) => b.totalProfit - a.totalProfit),
       recipeProfitMap,
     };
-  }, [recipes, recentSales, isPartner]);
+  }, [recipes, recentSales, partnerPeriodSales, isPartner]);
 
   // Ingredients with low stock
   const lowStockIngredients = useMemo(() => {
@@ -195,6 +249,34 @@ export default function DashboardPage() {
     return { ceciliaTotal, jhonTotal, totalProfit: ceciliaTotal + jhonTotal };
   }, [isAdmin, recipes, stats.byProduct]);
 
+  const periodLabel = useMemo(() => {
+    if (filterType === 'predefined') {
+      return {
+        day: 'hoy',
+        week: 'esta semana',
+        month: 'este mes',
+        year: 'este año',
+      }[period] || 'este mes';
+    }
+    if (filterType === 'custom-day') {
+      return `día ${formatDate(selectedDay)}`;
+    }
+    if (filterType === 'custom-month') {
+      const [year, month] = selectedMonth.split('-');
+      if (!year || !month) return 'mes seleccionado';
+      const monthNames = [
+        'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+        'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+      ];
+      const mIdx = parseInt(month, 10) - 1;
+      return `${monthNames[mIdx] || month} de ${year}`;
+    }
+    if (filterType === 'custom-range') {
+      return `del ${formatDate(rangeStart)} al ${formatDate(rangeEnd)}`;
+    }
+    return 'período seleccionado';
+  }, [filterType, period, selectedDay, selectedMonth, rangeStart, rangeEnd]);
+
   if (loading) {
     return (
       <div className="app-content" style={{ display: 'flex', justifyContent: 'center', paddingTop: 'var(--space-16)' }}>
@@ -202,13 +284,6 @@ export default function DashboardPage() {
       </div>
     );
   }
-
-  const periodLabel = {
-    day: 'hoy',
-    week: 'esta semana',
-    month: 'este mes',
-    year: 'este año',
-  }[period];
 
   return (
     <div className="app-content dashboard-container animate-fade-in">
@@ -225,23 +300,110 @@ export default function DashboardPage() {
         <div className="dashboard-welcome-icon">🎂</div>
       </div>
 
-      {/* Stats period selector for Admin */}
-      {isAdmin && (
-        <div className="period-selector-row">
-          <span className="period-selector-label">Ver estadísticas de:</span>
-          <div className="period-buttons">
-            {['day', 'week', 'month', 'year'].map((p) => (
-              <button
-                key={p}
-                className={`period-btn ${period === p ? 'active' : ''}`}
-                onClick={() => setPeriod(p)}
-              >
-                {p === 'day' ? 'Día' : p === 'week' ? 'Semana' : p === 'month' ? 'Mes' : 'Año'}
-              </button>
-            ))}
+      {/* Advanced Date Filters for Everyone */}
+      <div className="filter-section-container">
+        <div className="filter-type-selector">
+          <span className="filter-label">Filtrar estadísticas por:</span>
+          <div className="filter-buttons">
+            <button
+              className={`filter-btn ${filterType === 'predefined' ? 'active' : ''}`}
+              onClick={() => setFilterType('predefined')}
+            >
+              Período Predefinido
+            </button>
+            <button
+              className={`filter-btn ${filterType === 'custom-day' ? 'active' : ''}`}
+              onClick={() => setFilterType('custom-day')}
+            >
+              Día Específico
+            </button>
+            <button
+              className={`filter-btn ${filterType === 'custom-month' ? 'active' : ''}`}
+              onClick={() => setFilterType('custom-month')}
+            >
+              Mes Específico
+            </button>
+            <button
+              className={`filter-btn ${filterType === 'custom-range' ? 'active' : ''}`}
+              onClick={() => setFilterType('custom-range')}
+            >
+              Rango Personalizado
+            </button>
           </div>
         </div>
-      )}
+
+        <div className="filter-inputs-row">
+          {filterType === 'predefined' && (
+            <div className="period-buttons">
+              {['day', 'week', 'month', 'year'].map((p) => (
+                <button
+                  key={p}
+                  className={`period-btn ${period === p ? 'active' : ''}`}
+                  onClick={() => setPeriod(p)}
+                >
+                  {p === 'day' ? 'Día' : p === 'week' ? 'Semana' : p === 'month' ? 'Mes' : 'Año'}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {filterType === 'custom-day' && (
+            <div className="filter-input-group">
+              <label htmlFor="dashboard-day">Seleccionar Día:</label>
+              <input
+                id="dashboard-day"
+                type="date"
+                className="filter-date-input"
+                value={selectedDay}
+                onChange={(e) => setSelectedDay(e.target.value)}
+              />
+            </div>
+          )}
+
+          {filterType === 'custom-month' && (
+            <div className="filter-input-group">
+              <label htmlFor="dashboard-month">Seleccionar Mes:</label>
+              <input
+                id="dashboard-month"
+                type="month"
+                className="filter-date-input"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+              />
+            </div>
+          )}
+
+          {filterType === 'custom-range' && (
+            <div className="filter-range-inputs">
+              <div className="filter-input-group">
+                <label htmlFor="dashboard-range-start">Desde:</label>
+                <input
+                  id="dashboard-range-start"
+                  type="date"
+                  className="filter-date-input"
+                  value={rangeStart}
+                  onChange={(e) => setRangeStart(e.target.value)}
+                />
+              </div>
+              <div className="filter-input-group">
+                <label htmlFor="dashboard-range-end">Hasta:</label>
+                <input
+                  id="dashboard-range-end"
+                  type="date"
+                  className="filter-date-input"
+                  value={rangeEnd}
+                  onChange={(e) => setRangeEnd(e.target.value)}
+                />
+              </div>
+              {rangeStart > rangeEnd && (
+                <span className="filter-error-msg">
+                  ⚠️ La fecha 'Desde' no puede ser mayor que 'Hasta'.
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
 
       {isAdmin && (
         <>
@@ -455,28 +617,46 @@ export default function DashboardPage() {
               </Card>
             </div>
           </div>
+
+          {/* ── Próximas Entregas (admin) ── */}
+          <UpcomingDeliveriesSection deliveries={upcomingDeliveries} navigate={navigate} />
         </>
       )}
 
-      {isPartner && partnerStats && (
+       {isPartner && partnerStats && (
         <>
           {/* Partner Stats Grid */}
           <div className="dashboard-grid">
             <StatCard
-              label="Mis Ventas Totales"
+              label={`Mis Ventas Totales (${periodLabel})`}
               value={formatCurrency(partnerStats.totalRevenue)}
-              sub="Venta acumulada de mis recetas"
+              sub="Venta total de mis recetas en este período"
             />
             <StatCard
-              label="Mi Ganancia Acumulada 🤝"
+              label={`Dinero Recibido (${periodLabel})`}
+              value={formatCurrency(partnerStats.paidRevenue)}
+              sub="Ya abonado/pagado por clientes"
+              style={{ borderLeft: '4px solid var(--color-success)' }}
+            />
+            <StatCard
+              label={`Por Cobrar (${periodLabel})`}
+              value={formatCurrency(partnerStats.pendingRevenue)}
+              sub="Saldos pendientes de pago"
+              style={{ borderLeft: '4px solid var(--color-warning)' }}
+            />
+          </div>
+
+          <div className="dashboard-grid" style={{ marginTop: 'var(--space-3)' }}>
+            <StatCard
+              label={`Mi Ganancia (${periodLabel}) 🤝`}
               value={formatCurrency(partnerStats.totalProfit)}
               sub="50% de la utilidad neta de cada unidad"
               style={{ borderLeft: '4px solid var(--color-rose-500)', background: 'var(--color-rose-50)' }}
             />
             <StatCard
-              label="Ventas Registradas"
+              label={`Porciones Vendidas (${periodLabel})`}
               value={partnerStats.salesCount}
-              sub="Lotes con mi participación"
+              sub="Cantidad total de unidades vendidas"
             />
           </div>
 
@@ -565,8 +745,114 @@ export default function DashboardPage() {
               </CardBody>
             </Card>
           </div>
+
+          {/* ── Próximas Entregas (partner) ── */}
+          <UpcomingDeliveriesSection deliveries={upcomingDeliveries} navigate={navigate} />
         </>
       )}
     </div>
+  );
+}
+
+// ── Componente: Próximas Entregas ─────────────────────────────────────────────
+function UpcomingDeliveriesSection({ deliveries, navigate }) {
+  const todayStr = new Date().toISOString().split('T')[0];
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+  const getUrgencyInfo = (deliveryDate) => {
+    if (!deliveryDate) return null;
+    if (deliveryDate < todayStr) return { label: '⚠️ VENCIDO', cls: 'urgency-overdue' };
+    if (deliveryDate === todayStr) return { label: '⚡ HOY', cls: 'urgency-today' };
+    if (deliveryDate === tomorrowStr) return { label: '⏰ Mañana', cls: 'urgency-tomorrow' };
+    return null;
+  };
+
+  return (
+    <Card style={{ marginTop: 'var(--space-4)' }}>
+      <CardHeader>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3>📦 Próximas Entregas (próximos 14 días)</h3>
+          <button
+            className="upcoming-view-all-btn"
+            onClick={() => navigate('/ventas')}
+          >
+            Ver todos →
+          </button>
+        </div>
+      </CardHeader>
+      <CardBody>
+        {deliveries.length === 0 ? (
+          <div style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+            ✓ No hay pedidos pendientes de entrega en los próximos 14 días.
+          </div>
+        ) : (
+          <div className="table-responsive">
+            <table className="dashboard-table upcoming-table">
+              <thead>
+                <tr>
+                  <th>Entrega</th>
+                  <th>Cliente</th>
+                  <th>Productos</th>
+                  <th style={{ textAlign: 'right' }}>Total</th>
+                  <th style={{ textAlign: 'right' }}>Abonado</th>
+                  <th style={{ textAlign: 'right' }}>Por Cobrar</th>
+                  <th>Registró</th>
+                </tr>
+              </thead>
+              <tbody>
+                {deliveries.map((delivery) => {
+                  const cust = delivery.customers?.name || delivery.customer_name || 'Cliente general';
+                  const amountPaid = delivery.amount_paid ?? 0;
+                  const remaining = delivery.total - amountPaid;
+                  const urgency = getUrgencyInfo(delivery.delivery_date);
+                  const registeredBy = delivery.profiles?.full_name;
+                  return (
+                    <tr
+                      key={delivery.id}
+                      className={`upcoming-row ${urgency?.cls ?? ''}`}
+                      onClick={() => navigate('/ventas')}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <span style={{ fontWeight: 'bold' }}>{formatDate(delivery.delivery_date)}</span>
+                          {urgency && (
+                            <span className={`urgency-tag ${urgency.cls}`}>{urgency.label}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ fontWeight: 'var(--font-weight-semibold)' }}>👤 {cust}</td>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          {(delivery.sale_items ?? []).map((item) => (
+                            <span key={item.id} style={{ fontSize: 'var(--font-size-sm)' }}>
+                              {item.recipes?.name ?? '?'} ×{item.quantity}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td style={{ textAlign: 'right', fontWeight: 'bold', color: 'var(--color-rose-600)' }}>
+                        {formatCurrency(delivery.total)}
+                      </td>
+                      <td style={{ textAlign: 'right', color: 'var(--color-success)', fontWeight: 'bold' }}>
+                        {amountPaid > 0 ? formatCurrency(amountPaid) : '—'}
+                      </td>
+                      <td style={{ textAlign: 'right', color: remaining > 0 ? 'var(--color-danger)' : 'var(--color-success)', fontWeight: 'bold' }}>
+                        {remaining > 0 ? formatCurrency(remaining) : '✓ Pagado'}
+                      </td>
+                      <td style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
+                        {registeredBy ?? '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardBody>
+    </Card>
   );
 }

@@ -16,6 +16,7 @@ import SalesPage from './pages/SalesPage';
 import CustomersPage from './pages/CustomersPage';
 import ProvidersPage from './pages/ProvidersPage';
 import ExtraCostsPage from './pages/ExtraCostsPage';
+import ProfilePage from './pages/ProfilePage/ProfilePage';
 
 // Componente Layout que envuelve las páginas protegidas
 function AppLayout() {
@@ -136,6 +137,12 @@ export default function App() {
                   <ExtraCostsPage />
                 </ProtectedRoute>
               }
+            />
+
+            {/* Perfil del Usuario */}
+            <Route
+              path="perfil"
+              element={<ProfilePage />}
             />
           </Route>
 

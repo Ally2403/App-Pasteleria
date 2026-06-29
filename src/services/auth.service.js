@@ -69,3 +69,29 @@ export function onAuthStateChange(callback) {
   const { data: { subscription } } = supabase.auth.onAuthStateChange(callback);
   return () => subscription.unsubscribe();
 }
+
+/**
+ * Actualiza los datos de perfil del usuario (nombre).
+ * @param {string} userId
+ * @param {string} fullName
+ */
+export async function updateProfileData(userId, fullName) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({ full_name: fullName })
+    .eq('id', userId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Actualiza las credenciales de autenticación del usuario (correo y/o contraseña).
+ * @param {{ email?: string, password?: string }} updates
+ */
+export async function updateUserAuth(updates) {
+  const { data, error } = await supabase.auth.updateUser(updates);
+  if (error) throw error;
+  return data;
+}

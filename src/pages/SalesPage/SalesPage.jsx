@@ -1,13 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { getRecipes } from '../../services/recipes.service';
-import { getCustomers, createCustomer, getOrCreateCustomerByName } from '../../services/customers.service';
-import { getSales, createSale, updateSaleStatus, deleteSale } from '../../services/sales.service';
-import { getProductStock, adjustProductStock } from '../../services/product_stock.service';
+import { getCustomers, getOrCreateCustomerByName } from '../../services/customers.service';
+import {
+  getSales, createSale, updateSaleStatus, updateSalePayment, deleteSale
+} from '../../services/sales.service';
+import { getProductStockWithPending, adjustProductStock } from '../../services/product_stock.service';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { getRecipePricing } from '../../utils/calculations';
 import { Card, CardBody } from '../../components/ui/Card';
-import { Field, Input, Select, Textarea } from '../../components/ui/Input';
+import { Field, Input, Select, Textarea, SearchableSelect } from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import Badge from '../../components/ui/Badge';
@@ -30,18 +32,24 @@ export default function SalesPage() {
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [paymentFilter, setPaymentFilter] = useState('');
 
   // Modals
   const [saleModalOpen, setSaleModalOpen] = useState(false);
   const [adjustModalOpen, setAdjustModalOpen] = useState(false);
+  const [abonoModalOpen, setAbonoModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [abonoTarget, setAbonoTarget] = useState(null);
+  const [formError, setFormError] = useState(null);
 
-  // Form: New Sale
+  // Form: New Sale / Order
+  const [saleType, setSaleType] = useState('immediate'); // 'immediate' | 'order'
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [customCustomerName, setCustomCustomerName] = useState('');
   const [saleDate, setSaleDate] = useState(new Date().toISOString().split('T')[0]);
+  const [deliveryDate, setDeliveryDate] = useState(new Date().toISOString().split('T')[0]);
   const [paymentMethod, setPaymentMethod] = useState('efectivo');
-  const [isPaid, setIsPaid] = useState(true);
+  const [amountPaid, setAmountPaid] = useState('');
   const [saleStatus, setSaleStatus] = useState('completed');
   const [saleNotes, setSaleNotes] = useState('');
   const [saleItems, setSaleItems] = useState([{ recipeId: '', quantity: 1, unitPrice: 0 }]);
@@ -49,28 +57,44 @@ export default function SalesPage() {
   // Form: Adjust Stock
   const [adjustRecipeId, setAdjustRecipeId] = useState('');
   const [adjustQty, setAdjustQty] = useState('');
-  const [adjustReason, setAdjustReason] = useState('damage'); // 'damage' | 'consumption' | 'other'
+  const [adjustReason, setAdjustReason] = useState('damage');
   const [adjustNotes, setAdjustNotes] = useState('');
+
+  // Form: Abono
+  const [abonoAmount, setAbonoAmount] = useState('');
 
   // Saving states
   const [savingSale, setSavingSale] = useState(false);
   const [savingAdjustment, setSavingAdjustment] = useState(false);
+  const [savingAbono, setSavingAbono] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
     try {
       const [salesData, stocksData, recipesData, customersData] = await Promise.all([
-        getSales(),
-        getProductStock(),
-        getRecipes(),
-        getCustomers(),
+        getSales().catch(err => {
+          console.error("Error al cargar getSales():", err);
+          return [];
+        }),
+        getProductStockWithPending().catch(err => {
+          console.error("Error al cargar getProductStockWithPending():", err);
+          return [];
+        }),
+        getRecipes().catch(err => {
+          console.error("Error al cargar getRecipes():", err);
+          return [];
+        }),
+        getCustomers().catch(err => {
+          console.error("Error al cargar getCustomers():", err);
+          return [];
+        }),
       ]);
       setSales(salesData);
       setProductStocks(stocksData);
       setRecipes(recipesData);
       setCustomers(customersData);
     } catch (error) {
-      console.error('Error al cargar datos de ventas:', error);
+      console.error('Error general al cargar datos de ventas:', error);
     } finally {
       setLoading(false);
     }
@@ -84,24 +108,54 @@ export default function SalesPage() {
   const filteredSales = useMemo(() => {
     return sales.filter((s) => {
       const customerName = s.customers?.name || s.customer_name || 'Cliente general';
-      const matchesSearch = customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      const matchesSearch =
+        customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         s.sale_items?.some(item => item.recipes?.name?.toLowerCase().includes(searchQuery.toLowerCase()));
       const matchesStatus = statusFilter === '' || s.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      
+      let matchesPayment = true;
+      if (paymentFilter === 'paid') {
+        matchesPayment = s.is_paid;
+      } else if (paymentFilter === 'pending') {
+        matchesPayment = !s.is_paid;
+      }
+
+      return matchesSearch && matchesStatus && matchesPayment;
     });
-  }, [sales, searchQuery, statusFilter]);
+  }, [sales, searchQuery, statusFilter, paymentFilter]);
+
+  // Today string for date comparisons
+  const todayStr = useMemo(() => {
+    const t = new Date();
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+  }, []);
 
   // Open Sale Modal
   const openNewSale = () => {
+    setSaleType('immediate');
     setSelectedCustomerId('');
     setCustomCustomerName('');
-    setSaleDate(new Date().toISOString().split('T')[0]);
+    setSaleDate(todayStr);
+    setDeliveryDate(todayStr);
     setPaymentMethod('efectivo');
-    setIsPaid(true);
+    setAmountPaid('');
     setSaleStatus('completed');
     setSaleNotes('');
     setSaleItems([{ recipeId: '', quantity: 1, unitPrice: 0 }]);
+    setFormError(null);
     setSaleModalOpen(true);
+  };
+
+  // When sale type changes, auto-set status
+  const handleSaleTypeChange = (newType) => {
+    setSaleType(newType);
+    setFormError(null);
+    if (newType === 'order') {
+      setSaleStatus('pending');
+      setAmountPaid('');
+    } else {
+      setSaleStatus('completed');
+    }
   };
 
   // Open Adjust Modal
@@ -113,18 +167,24 @@ export default function SalesPage() {
     setAdjustModalOpen(true);
   };
 
+  // Open Abono Modal
+  const openAbono = (sale) => {
+    setAbonoTarget(sale);
+    setAbonoAmount('');
+    setAbonoModalOpen(true);
+  };
+
   // Dynamic calculations for New Sale
   const handleItemChange = (index, field, value) => {
     const updated = [...saleItems];
     updated[index][field] = value;
-
     if (field === 'recipeId') {
       const recipe = recipes.find(r => r.id === value);
       const price = getRecipePricing(recipe).rounded_price ?? 0;
       updated[index].unitPrice = price;
     }
-
     setSaleItems(updated);
+    setFormError(null); // limpiar error al editar
   };
 
   const addItemRow = () => {
@@ -137,40 +197,77 @@ export default function SalesPage() {
   };
 
   const saleTotal = useMemo(() => {
-    return saleItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+    return saleItems.reduce((sum, item) => {
+      const qty = Number(item.quantity) || 0;
+      const price = Number(item.unitPrice) || 0;
+      return sum + (qty * price);
+    }, 0);
   }, [saleItems]);
 
   const handleSaveSale = async (e) => {
     e.preventDefault();
-    if (saleItems.some(i => !i.recipeId || i.quantity <= 0)) {
-      alert('Por favor selecciona un producto y cantidad válida para todos los items.');
+    setFormError(null);
+
+    if (saleItems.some(i => !i.recipeId || i.quantity === '' || Number(i.quantity) <= 0)) {
+      setFormError('Por favor selecciona un producto y cantidad válida para todos los items.');
       return;
     }
+    if (!saleDate) {
+      setFormError('Por favor selecciona una fecha para la venta.');
+      return;
+    }
+    // Para ventas inmediatas, la fecha no puede ser futura
+    if (saleType === 'immediate' && saleDate > todayStr) {
+      setFormError(`No se puede registrar una venta inmediata con fecha futura (${saleDate}).`);
+      return;
+    }
+    // Para pedidos, la fecha de entrega es obligatoria
+    if (saleType === 'order' && !deliveryDate) {
+      setFormError('Por favor selecciona una fecha de entrega para el pedido.');
+      return;
+    }
+
+    // Validar stock si es venta inmediata
+    if (saleType === 'immediate') {
+      for (const item of saleItems) {
+        const stockData = productStocks.find(s => s.recipe_id === item.recipeId);
+        const available = stockData?.available_units ?? 0;
+        if (Number(item.quantity) > available) {
+          const recipe = recipes.find(r => r.id === item.recipeId);
+          setFormError(`No hay suficiente stock de producto terminado para "${recipe?.name}". Stock actual: ${available} unidades. Si es una venta a entregar después, usa el botón "Pedido a futuro" arriba.`);
+          return;
+        }
+      }
+    }
+
     setSavingSale(true);
     try {
       let finalCustomerId = selectedCustomerId;
       let finalCustomerName = null;
 
-      // Si hay nombre escrito pero no hay cliente seleccionado del dropdown
       if (!selectedCustomerId && customCustomerName.trim() && customCustomerName.trim() !== 'Cliente general') {
-        // Auto-registrar: buscar por nombre o crear nuevo
         const customer = await getOrCreateCustomerByName(customCustomerName.trim());
         finalCustomerId = customer.id;
-        finalCustomerName = null; // ya está vinculado al cliente
+        finalCustomerName = null;
       } else if (!selectedCustomerId) {
         finalCustomerName = customCustomerName.trim() || 'Cliente general';
       }
 
+      const paid = parseFloat(amountPaid) || 0;
+
       const saleData = {
-        customerId: finalCustomerId || null,
-        customerName: finalCustomerId ? null : finalCustomerName,
+        customerId:     finalCustomerId || null,
+        customerName:   finalCustomerId ? null : finalCustomerName,
         saleDate,
+        deliveryDate:   saleType === 'order' ? deliveryDate : saleDate,
+        saleType,
         paymentMethod,
-        isPaid,
-        status: saleStatus,
-        notes: saleNotes,
-        total: saleTotal,
-        userId: user?.id,
+        amountPaid:     paid,
+        isPaid:         paid >= saleTotal,
+        status:         saleType === 'order' ? 'pending' : saleStatus,
+        notes:          saleNotes,
+        total:          saleTotal,
+        userId:         user?.id,
       };
 
       await createSale(saleData, saleItems);
@@ -178,7 +275,7 @@ export default function SalesPage() {
       await loadData();
     } catch (error) {
       console.error(error);
-      alert('Error al registrar la venta. Verifica que tengas suficiente stock de producto terminado.');
+      alert('Error al registrar la venta. Verifica los datos e intenta de nuevo.');
     } finally {
       setSavingSale(false);
     }
@@ -193,13 +290,7 @@ export default function SalesPage() {
     }
     setSavingAdjustment(true);
     try {
-      await adjustProductStock(
-        adjustRecipeId,
-        qty,
-        adjustReason,
-        adjustNotes,
-        user?.id
-      );
+      await adjustProductStock(adjustRecipeId, qty, adjustReason, adjustNotes, user?.id);
       setAdjustModalOpen(false);
       await loadData();
     } catch (error) {
@@ -210,10 +301,38 @@ export default function SalesPage() {
     }
   };
 
-  const togglePaymentStatus = async (sale) => {
-    const nextPaid = !sale.is_paid;
+  const handleSaveAbono = async (e) => {
+    e.preventDefault();
+    if (!abonoTarget) return;
+    const nuevoAbono = parseFloat(abonoAmount);
+    if (isNaN(nuevoAbono) || nuevoAbono <= 0) {
+      alert('Por favor ingresa un monto de abono válido.');
+      return;
+    }
+    const totalAbonado = (abonoTarget.amount_paid ?? 0) + nuevoAbono;
+    if (totalAbonado > abonoTarget.total) {
+      alert(`El abono excede el total de la venta (${formatCurrency(abonoTarget.total)}). El máximo a abonar es ${formatCurrency(abonoTarget.total - (abonoTarget.amount_paid ?? 0))}.`);
+      return;
+    }
+    setSavingAbono(true);
     try {
-      await updateSaleStatus(sale.id, sale.status, nextPaid);
+      await updateSalePayment(abonoTarget.id, totalAbonado, abonoTarget.total);
+      setAbonoModalOpen(false);
+      setAbonoTarget(null);
+      await loadData();
+    } catch (error) {
+      console.error(error);
+      alert('Error al registrar el abono.');
+    } finally {
+      setSavingAbono(false);
+    }
+  };
+
+  const togglePaymentStatus = async (sale) => {
+    // Marcar como pagado completo o volver a 0
+    const newAmountPaid = sale.is_paid ? 0 : sale.total;
+    try {
+      await updateSalePayment(sale.id, newAmountPaid, sale.total);
       await loadData();
     } catch (error) {
       console.error(error);
@@ -223,7 +342,7 @@ export default function SalesPage() {
   const toggleDeliveryStatus = async (sale) => {
     const nextStatus = sale.status === 'completed' ? 'pending' : 'completed';
     try {
-      await updateSaleStatus(sale.id, nextStatus, sale.is_paid);
+      await updateSaleStatus(sale.id, nextStatus, sale.is_paid, user?.id);
       await loadData();
     } catch (error) {
       console.error(error);
@@ -242,16 +361,28 @@ export default function SalesPage() {
     }
   };
 
+  // Urgency tag for delivery dates
+  const getDeliveryUrgency = (deliveryDateStr) => {
+    if (!deliveryDateStr) return null;
+    if (deliveryDateStr < todayStr) return 'overdue';
+    if (deliveryDateStr === todayStr) return 'today';
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    if (deliveryDateStr === tomorrowStr) return 'tomorrow';
+    return null;
+  };
+
   return (
     <div className="app-content sales-page-container animate-fade-in">
       <div className="page-header">
         <div className="page-header-left">
           <h1>💰 Ventas y Stock de Productos</h1>
-          <p>Registra ventas, controla el dinero recibido y ajusta las mermas o consumo de productos terminados.</p>
+          <p>Registra ventas y pedidos, controla abonos y ajusta el stock de productos terminados.</p>
         </div>
         <div className="page-header-actions">
           {activeTab === 'sales' ? (
-            <Button onClick={openNewSale}>+ Registrar venta</Button>
+            <Button onClick={openNewSale}>+ Registrar venta / pedido</Button>
           ) : (
             <Button onClick={() => openAdjustStock()}>⚙️ Ajustar Stock</Button>
           )}
@@ -297,6 +428,17 @@ export default function SalesPage() {
                 <option value="pending">⏳ Pendientes</option>
               </Select>
             </div>
+            <div className="filter-select-wrapper">
+              <Select
+                id="sale-payment-filter"
+                value={paymentFilter}
+                onChange={(e) => setPaymentFilter(e.target.value)}
+              >
+                <option value="">Filtrar por pago (Todos)</option>
+                <option value="paid">✓ Pagados</option>
+                <option value="pending">⏳ Falta por pagar</option>
+              </Select>
+            </div>
           </div>
 
           {loading ? (
@@ -307,23 +449,51 @@ export default function SalesPage() {
             <div className="empty-state">
               <span className="empty-icon">💰</span>
               <h3>No se encontraron ventas</h3>
-              <p>Puedes agregar una nueva venta usando el botón superior.</p>
+              <p>Puedes agregar una nueva venta o pedido usando el botón superior.</p>
             </div>
           ) : (
             <div className="sales-list">
               {filteredSales.map((sale) => {
                 const customerName = sale.customers?.name || sale.customer_name || 'Cliente general';
+                const registeredBy = sale.profiles?.full_name;
+                const amountPaidVal = sale.amount_paid ?? (sale.is_paid ? sale.total : 0);
+                const remaining = sale.total - amountPaidVal;
+                const isOrder = sale.sale_type === 'order';
+                const urgency = isOrder && sale.status === 'pending'
+                  ? getDeliveryUrgency(sale.delivery_date)
+                  : null;
+
                 return (
-                  <Card key={sale.id} className="sale-card animate-fade-in-up">
+                  <Card
+                    key={sale.id}
+                    className={`sale-card animate-fade-in-up ${urgency === 'overdue' ? 'sale-card--overdue' : urgency === 'today' ? 'sale-card--today' : ''}`}
+                  >
                     <CardBody className="sale-card-body">
                       <div className="sale-card-header">
                         <div className="sale-customer-section">
                           <span className="sale-customer-name">👤 {customerName}</span>
-                          <span className="sale-date-badge">{formatDate(sale.sale_date)}</span>
+                          <div className="sale-dates-row">
+                            <span className="sale-date-badge">📅 Pedido: {formatDate(sale.sale_date)}</span>
+                            {isOrder && sale.delivery_date && (
+                              <span className={`sale-delivery-badge ${urgency ? `sale-delivery-badge--${urgency}` : ''}`}>
+                                🚚 Entrega: {formatDate(sale.delivery_date)}
+                                {urgency === 'today' && ' ⚡ HOY'}
+                                {urgency === 'tomorrow' && ' ⏰ Mañana'}
+                                {urgency === 'overdue' && ' ⚠️ VENCIDO'}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="sale-price-section">
                           <span className="sale-total-price">{formatCurrency(sale.total)}</span>
                           <span className="sale-payment-method">💳 {sale.payment_method.toUpperCase()}</span>
+                          {/* Abono info */}
+                          {!sale.is_paid && (
+                            <div className="sale-abono-info">
+                              <span className="sale-abono-paid">Abonado: {formatCurrency(amountPaidVal)}</span>
+                              <span className="sale-abono-remaining">Resta: {formatCurrency(remaining)}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -336,9 +506,23 @@ export default function SalesPage() {
                         ))}
                       </div>
 
+                      {/* Tipo de venta badge */}
+                      {isOrder && (
+                        <div className="sale-type-tag">
+                          📦 Pedido a futuro
+                        </div>
+                      )}
+
                       {sale.notes && (
                         <div className="sale-notes-box">
                           <strong>Notas: </strong> {sale.notes}
+                        </div>
+                      )}
+
+                      {/* Registrado por */}
+                      {registeredBy && (
+                        <div className="sale-registered-by">
+                          👤 Registrado por: <strong>{registeredBy}</strong>
                         </div>
                       )}
 
@@ -350,7 +534,7 @@ export default function SalesPage() {
                             title="Haz clic para cambiar estado de pago"
                           >
                             <Badge variant={sale.is_paid ? 'success' : 'danger'}>
-                              {sale.is_paid ? '✓ Pagado' : '⏳ Por Cobrar'}
+                              {sale.is_paid ? '✓ Pagado' : `⏳ Por Cobrar`}
                             </Badge>
                           </button>
                           <button
@@ -363,15 +547,27 @@ export default function SalesPage() {
                             </Badge>
                           </button>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          icon
-                          onClick={() => setDeleteTarget(sale)}
-                          title="Eliminar venta"
-                        >
-                          🗑️
-                        </Button>
+                        <div className="sale-card-actions-right">
+                          {!sale.is_paid && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => openAbono(sale)}
+                              title="Registrar abono"
+                            >
+                              💵 Abonar
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon
+                            onClick={() => setDeleteTarget(sale)}
+                            title="Eliminar venta"
+                          >
+                            🗑️
+                          </Button>
+                        </div>
                       </div>
                     </CardBody>
                   </Card>
@@ -394,63 +590,99 @@ export default function SalesPage() {
               <p>El stock se crea automáticamente al registrar producciones completadas.</p>
             </div>
           ) : (
-            <div className="stock-cards-grid">
-              {productStocks.map((stock) => {
-                const recipeName = stock.recipes?.name ?? 'Receta eliminada';
-                const units = stock.available_units;
-                return (
-                  <Card key={stock.id} className="stock-card animate-fade-in-up">
-                    <CardBody className="stock-card-body">
-                      <div className="stock-card-details">
-                        <span className="stock-product-name">🧁 {recipeName}</span>
-                        <div className="stock-qty-display">
-                          <span className={`stock-number ${units === 0 ? 'out' : ''}`}>
-                            {units}
-                          </span>
-                          <span className="stock-unit-label">unidades listas</span>
+            <>
+              <div className="stock-legend">
+                <span className="stock-legend-item stock-legend-available">🟢 Disponibles ahora</span>
+                <span className="stock-legend-item stock-legend-pending">🟠 Por hacer (pedidos pendientes)</span>
+              </div>
+              <div className="stock-cards-grid">
+                {productStocks.map((stock) => {
+                  const recipeName = stock.recipes?.name ?? 'Receta eliminada';
+                  const units = stock.available_units ?? 0;
+                  const pending = stock.pending_units ?? 0;
+                  return (
+                    <Card key={stock.recipe_id} className="stock-card animate-fade-in-up">
+                      <CardBody className="stock-card-body">
+                        <div className="stock-card-details">
+                          <span className="stock-product-name">🧁 {recipeName}</span>
+                          <div className="stock-qty-display">
+                            <div className="stock-qty-row">
+                              <span className={`stock-number ${units === 0 ? 'out' : ''}`}>{units}</span>
+                              <span className="stock-unit-label">unidades listas</span>
+                            </div>
+                            {pending > 0 && (
+                              <div className="stock-qty-row stock-pending-row">
+                                <span className="stock-number stock-number--pending">{pending}</span>
+                                <span className="stock-unit-label">por hacer</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <div className="stock-card-actions">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => openAdjustStock(stock.recipe_id)}
-                        >
-                          Ajustar stock
-                        </Button>
-                      </div>
-                    </CardBody>
-                  </Card>
-                );
-              })}
-            </div>
+                        <div className="stock-card-actions">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => openAdjustStock(stock.recipe_id)}
+                          >
+                            Ajustar stock
+                          </Button>
+                        </div>
+                      </CardBody>
+                    </Card>
+                  );
+                })}
+              </div>
+            </>
           )}
         </>
       )}
 
-      {/* Modal: New Sale */}
+      {/* ── Modal: New Sale / Order ── */}
       <Modal
         isOpen={saleModalOpen}
         onClose={() => setSaleModalOpen(false)}
-        title="💰 Registrar Nueva Venta"
+        title="💰 Registrar Venta o Pedido"
         size="md"
       >
         <form onSubmit={handleSaveSale} className="sales-form">
+
+          {/* Tipo de venta */}
+          <div className="sale-type-selector">
+            <button
+              type="button"
+              className={`sale-type-btn ${saleType === 'immediate' ? 'active' : ''}`}
+              onClick={() => handleSaleTypeChange('immediate')}
+            >
+              🛍️ Venta inmediata
+              <span>Producto ya listo para entregar</span>
+            </button>
+            <button
+              type="button"
+              className={`sale-type-btn ${saleType === 'order' ? 'active' : ''}`}
+              onClick={() => handleSaleTypeChange('order')}
+            >
+              📦 Pedido a futuro
+              <span>El cliente pide con fecha de entrega</span>
+            </button>
+          </div>
+
           <div className="sales-form-row">
             <Field label="Cliente Registrado">
-              <Select
-                id="sale-cust-select"
+              <SearchableSelect
                 value={selectedCustomerId}
                 onChange={(e) => {
                   setSelectedCustomerId(e.target.value);
                   if (e.target.value) setCustomCustomerName('');
                 }}
-              >
-                <option value="">-- Cliente General / No registrado --</option>
-                {customers.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name} {c.phone ? `(${c.phone})` : ''}</option>
-                ))}
-              </Select>
+                options={[
+                  { value: '', label: '-- Cliente General / No registrado --' },
+                  ...customers.map((c) => ({
+                    value: c.id,
+                    label: `${c.name}${c.phone ? ` (${c.phone})` : ''}`,
+                  })),
+                ]}
+                placeholder="Buscar cliente..."
+              />
             </Field>
 
             {!selectedCustomerId && (
@@ -466,7 +698,7 @@ export default function SalesPage() {
           </div>
 
           <div className="sales-form-row">
-            <Field label="Fecha de la venta">
+            <Field label={saleType === 'order' ? 'Fecha del pedido' : 'Fecha de la venta'}>
               <Input
                 id="sale-date"
                 type="date"
@@ -474,6 +706,18 @@ export default function SalesPage() {
                 onChange={(e) => setSaleDate(e.target.value)}
               />
             </Field>
+
+            {saleType === 'order' && (
+              <Field label="📅 Fecha de entrega prometida">
+                <Input
+                  id="sale-delivery-date"
+                  type="date"
+                  value={deliveryDate}
+                  onChange={(e) => setDeliveryDate(e.target.value)}
+                  min={saleDate}
+                />
+              </Field>
+            )}
 
             <Field label="Medio de pago">
               <Select
@@ -491,26 +735,23 @@ export default function SalesPage() {
           </div>
 
           <div className="sale-items-section">
-            <label className="section-label">Productos Vendidos</label>
+            <label className="section-label">Productos Vendidos / Pedidos</label>
             {saleItems.map((item, index) => (
               <div key={index} className="sale-item-row">
                 <div style={{ flex: 2 }}>
-                  <Select
+                  <SearchableSelect
                     value={item.recipeId}
                     onChange={(e) => handleItemChange(index, 'recipeId', e.target.value)}
-                  >
-                    <option value="">Selecciona un producto...</option>
-                    {recipes.map((r) => (
-                      <option key={r.id} value={r.id}>{r.name}</option>
-                    ))}
-                  </Select>
+                    options={recipes.map((r) => ({ value: r.id, label: r.name }))}
+                    placeholder="Buscar producto..."
+                  />
                 </div>
                 <div style={{ width: '80px' }}>
                   <Input
                     type="number"
                     min="1"
                     value={item.quantity}
-                    onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value) || 1)}
+                    onChange={(e) => handleItemChange(index, 'quantity', e.target.value === '' ? '' : parseInt(e.target.value))}
                   />
                 </div>
                 <div style={{ width: '120px' }}>
@@ -518,7 +759,7 @@ export default function SalesPage() {
                     type="number"
                     prefix="$"
                     value={item.unitPrice}
-                    onChange={(e) => handleItemChange(index, 'unitPrice', parseFloat(e.target.value) || 0)}
+                    onChange={(e) => handleItemChange(index, 'unitPrice', e.target.value === '' ? '' : parseFloat(e.target.value))}
                   />
                 </div>
                 <Button
@@ -542,38 +783,68 @@ export default function SalesPage() {
             </Button>
           </div>
 
-          <div className="sale-toggles-row">
-            <label className="checkbox-label">
-              <input
-                type="checkbox"
-                checked={isPaid}
-                onChange={(e) => setIsPaid(e.target.checked)}
+          {/* Abono / pago */}
+          <div className="sale-payment-section">
+            <Field
+              label={saleType === 'order' ? 'Abono inicial del cliente (puede ser $0)' : 'Monto recibido'}
+              hint={saleType === 'order'
+                ? 'Puedes dejar $0 si el cliente aún no ha pagado nada. Puedes registrar abonos después.'
+                : 'Si el cliente pagó completo, ingresa el total.'}
+            >
+              <Input
+                id="sale-amount-paid"
+                type="number"
+                prefix="$"
+                min="0"
+                max={saleTotal}
+                placeholder={`Máx: ${formatCurrency(saleTotal)}`}
+                value={amountPaid}
+                onChange={(e) => setAmountPaid(e.target.value)}
               />
-              ¿Ya pagó el cliente?
-            </label>
-            <label className="checkbox-label">
-              <input
-                type="checkbox"
-                checked={saleStatus === 'completed'}
-                onChange={(e) => setSaleStatus(e.target.checked ? 'completed' : 'pending')}
-              />
-              ¿Ya fue entregado?
-            </label>
+            </Field>
           </div>
+
+          {saleType === 'immediate' && (
+            <div className="sale-toggles-row">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={saleStatus === 'completed'}
+                  onChange={(e) => setSaleStatus(e.target.checked ? 'completed' : 'pending')}
+                />
+                ¿Ya fue entregado?
+              </label>
+            </div>
+          )}
 
           <Field label="Notas o Comentarios">
             <Textarea
               id="sale-notes-textarea"
-              placeholder="Ej: Entrega a domicilio en la tarde..."
+              placeholder={saleType === 'order' ? 'Ej: El cliente quiere torta de chocolate con letras doradas...' : 'Ej: Entrega a domicilio en la tarde...'}
               value={saleNotes}
               onChange={(e) => setSaleNotes(e.target.value)}
               rows={2}
             />
           </Field>
 
+          {formError && (
+            <div className="sale-form-error-alert animate-fade-in">
+              <span className="error-icon">⚠️</span>
+              <p className="error-message">{formError}</p>
+            </div>
+          )}
+
           <div className="sale-modal-summary">
-            <span>Total de la Venta:</span>
-            <span className="summary-total">{formatCurrency(saleTotal)}</span>
+            <div className="sale-summary-row">
+              <span>Total del pedido:</span>
+              <span className="summary-total">{formatCurrency(saleTotal)}</span>
+            </div>
+            {amountPaid && parseFloat(amountPaid) > 0 && (
+              <div className="sale-summary-row sale-summary-pending">
+                <span>Queda por cobrar:</span>
+                <span>{formatCurrency(Math.max(0, saleTotal - parseFloat(amountPaid)))}</span>
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end', marginTop: 'var(--space-4)' }}>
@@ -581,13 +852,13 @@ export default function SalesPage() {
               Cancelar
             </Button>
             <Button type="submit" loading={savingSale}>
-              Registrar Venta
+              {saleType === 'order' ? '📦 Registrar Pedido' : '💰 Registrar Venta'}
             </Button>
           </div>
         </form>
       </Modal>
 
-      {/* Modal: Adjust Stock */}
+      {/* ── Modal: Adjust Stock ── */}
       <Modal
         isOpen={adjustModalOpen}
         onClose={() => setAdjustModalOpen(false)}
@@ -655,7 +926,62 @@ export default function SalesPage() {
         </form>
       </Modal>
 
-      {/* Modal: Confirm Delete Sale */}
+      {/* ── Modal: Registrar Abono ── */}
+      <Modal
+        isOpen={abonoModalOpen}
+        onClose={() => { setAbonoModalOpen(false); setAbonoTarget(null); }}
+        title="💵 Registrar Abono"
+        size="sm"
+      >
+        {abonoTarget && (
+          <form onSubmit={handleSaveAbono} className="adjust-form">
+            <div className="abono-summary">
+              <div className="abono-summary-row">
+                <span>Total de la venta:</span>
+                <strong>{formatCurrency(abonoTarget.total)}</strong>
+              </div>
+              <div className="abono-summary-row">
+                <span>Ya abonado:</span>
+                <strong style={{ color: 'var(--color-success)' }}>{formatCurrency(abonoTarget.amount_paid ?? 0)}</strong>
+              </div>
+              <div className="abono-summary-row">
+                <span>Falta por pagar:</span>
+                <strong style={{ color: 'var(--color-danger)' }}>
+                  {formatCurrency(abonoTarget.total - (abonoTarget.amount_paid ?? 0))}
+                </strong>
+              </div>
+            </div>
+
+            <Field
+              label="Nuevo abono a registrar"
+              hint="Se sumará al monto ya abonado."
+            >
+              <Input
+                id="abono-amount"
+                type="number"
+                prefix="$"
+                min="1"
+                max={abonoTarget.total - (abonoTarget.amount_paid ?? 0)}
+                placeholder={`Máx: ${formatCurrency(abonoTarget.total - (abonoTarget.amount_paid ?? 0))}`}
+                value={abonoAmount}
+                onChange={(e) => setAbonoAmount(e.target.value)}
+                autoFocus
+              />
+            </Field>
+
+            <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end', marginTop: 'var(--space-4)' }}>
+              <Button type="button" variant="secondary" onClick={() => { setAbonoModalOpen(false); setAbonoTarget(null); }} disabled={savingAbono}>
+                Cancelar
+              </Button>
+              <Button type="submit" loading={savingAbono}>
+                ✓ Guardar Abono
+              </Button>
+            </div>
+          </form>
+        )}
+      </Modal>
+
+      {/* ── Modal: Confirm Delete Sale ── */}
       <Modal
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
@@ -673,9 +999,16 @@ export default function SalesPage() {
         }
       >
         <p>¿Estás segura de eliminar esta venta?</p>
-        <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)', marginTop: 'var(--space-2)' }}>
-          Al eliminarla, las unidades de producto vendidas se devolverán automáticamente al stock disponible.
-        </p>
+        {deleteTarget?.sale_type === 'immediate' && (
+          <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)', marginTop: 'var(--space-2)' }}>
+            Al eliminarla, las unidades de producto vendidas se devolverán automáticamente al stock disponible.
+          </p>
+        )}
+        {deleteTarget?.sale_type === 'order' && deleteTarget?.status === 'pending' && (
+          <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)', marginTop: 'var(--space-2)' }}>
+            Este pedido aún no fue entregado, por lo que el stock no fue descontado y no se devolverá nada.
+          </p>
+        )}
       </Modal>
     </div>
   );

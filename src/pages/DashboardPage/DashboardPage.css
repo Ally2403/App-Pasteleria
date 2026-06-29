@@ -282,3 +282,178 @@
   flex-direction: column;
 }
 
+/* Advanced Date Filtering Styles */
+.filter-section-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  background: var(--color-surface);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-rose-200);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-2);
+}
+
+.filter-type-selector {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.filter-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-warm-700);
+}
+
+.filter-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.filter-btn {
+  background: var(--color-rose-50);
+  border: 1px solid var(--color-rose-100);
+  color: var(--color-rose-700);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.filter-btn:hover {
+  background: var(--color-rose-100);
+  transform: translateY(-1px);
+}
+
+.filter-btn.active {
+  background: linear-gradient(135deg, var(--color-rose-500) 0%, var(--color-rose-600) 100%);
+  color: white;
+  border-color: var(--color-rose-500);
+  box-shadow: 0 4px 6px -1px rgba(244, 63, 94, 0.2);
+}
+
+.filter-inputs-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  animation: fadeIn 0.3s ease;
+}
+
+.filter-input-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.filter-input-group label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+
+.filter-date-input {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-md);
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.filter-date-input:focus {
+  border-color: var(--color-rose-400);
+  box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.15);
+}
+
+.filter-range-inputs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.filter-error-msg {
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  animation: shake 0.3s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+/* ── Próximas Entregas ── */
+.upcoming-table td,
+.upcoming-table th {
+  white-space: nowrap;
+}
+
+.upcoming-row {
+  transition: background 0.15s;
+}
+
+.upcoming-row:hover td {
+  background: var(--color-rose-50) !important;
+}
+
+.upcoming-row.urgency-today td {
+  background: #fffbeb;
+}
+
+.upcoming-row.urgency-overdue td {
+  background: #fff5f5;
+}
+
+.urgency-tag {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: var(--font-weight-bold);
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.03em;
+}
+
+.urgency-tag.urgency-today {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.urgency-tag.urgency-tomorrow {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.urgency-tag.urgency-overdue {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.upcoming-view-all-btn {
+  background: none;
+  border: none;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-rose-500);
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  transition: background 0.15s;
+}
+
+.upcoming-view-all-btn:hover {
+  background: var(--color-rose-50);
+}
+

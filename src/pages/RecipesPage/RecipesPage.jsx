@@ -10,7 +10,7 @@ import { useAuth } from '../../context/AuthContext';
 import { PERMISSIONS } from '../../utils/permissions';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader, StatCard } from '../../components/ui/Card';
-import { Field, Input, Select, Textarea } from '../../components/ui/Input';
+import { Field, Input, Select, Textarea, SearchableSelect } from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Badge from '../../components/ui/Badge';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
@@ -159,12 +159,12 @@ function RecipeForm({ allIngredients, partners, extraCostItems = [], initialData
           {ingredients.map((row, i) => (
             <div key={i} className="ingredient-row">
               <Field label={i === 0 ? 'Ingrediente' : ''}>
-                <Select value={row.ingredientId} onChange={(e) => setIng(i, 'ingredientId', e.target.value)}>
-                  <option value="">Selecciona...</option>
-                  {allIngredients.map((ing) => (
-                    <option key={ing.id} value={ing.id}>{ing.name}</option>
-                  ))}
-                </Select>
+                <SearchableSelect
+                  value={row.ingredientId}
+                  onChange={(e) => setIng(i, 'ingredientId', e.target.value)}
+                  options={allIngredients.map((ing) => ({ value: ing.id, label: ing.name }))}
+                  placeholder="Buscar ingrediente..."
+                />
               </Field>
               <Field label={i === 0 ? 'Cantidad' : ''}>
                 <Input type="number" min="0" step="any" placeholder="0"
@@ -192,18 +192,16 @@ function RecipeForm({ allIngredients, partners, extraCostItems = [], initialData
 
             return (
               <div key={i} className="extra-cost-row">
-                <Field label={i === 0 ? 'Concepto de Costo' : ''}>
-                  <Select
+                 <Field label={i === 0 ? 'Concepto de Costo' : ''}>
+                  <SearchableSelect
                     value={matchedItem?.id || ''}
                     onChange={(e) => handleSelectExtraItemChange(i, e.target.value)}
-                  >
-                    <option value="">Selecciona...</option>
-                    {extraCostItems.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name} {item.provider ? `(${item.provider})` : ''}
-                      </option>
-                    ))}
-                  </Select>
+                    options={extraCostItems.map((item) => ({
+                      value: item.id,
+                      label: `${item.name}${item.provider ? ` (${item.provider})` : ''}`,
+                    }))}
+                    placeholder="Buscar costo..."
+                  />
                 </Field>
                 <Field
                   label={i === 0 ? 'Cant. usadas' : ''}
@@ -253,10 +251,12 @@ function RecipeForm({ allIngredients, partners, extraCostItems = [], initialData
           </div>
           {hasPartner && partners.length > 0 && (
             <Field label="Selecciona el socio">
-              <Select value={partnerId} onChange={(e) => setPartnerId(e.target.value)}>
-                <option value="">Selecciona...</option>
-                {partners.map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}
-              </Select>
+              <SearchableSelect
+                value={partnerId}
+                onChange={(e) => setPartnerId(e.target.value)}
+                options={partners.map((p) => ({ value: p.id, label: p.full_name }))}
+                placeholder="Buscar socio..."
+              />
             </Field>
           )}
         </div>
@@ -346,17 +346,15 @@ function RecipeDetail({ recipe, onBack, onDelete, onEdit, onRoundedPriceUpdate, 
       )}
 
       {/* Stats principales */}
-      {!isPartner && (
-        <div className="recipe-stats-grid">
-          {[
-            { label: 'Costo total bandeja', value: formatCurrency(summary.batchCost) },
-            { label: `Unidades (${recipe.units_per_batch})`, value: formatCurrency(summary.unitCost), sub: 'por unidad' },
-            { label: 'Precio de venta', value: formatCurrency(summary.sellingPrice) },
-            { label: 'Ganancia total bandeja', value: formatCurrency(summary.totalProfit) },
-            { label: 'Ingresos totales', value: formatCurrency(summary.totalRevenue), sub: 'vendiendo todo' },
-          ].map((s) => <StatCard key={s.label} label={s.label} value={s.value} sub={s.sub} />)}
-        </div>
-      )}
+      <div className="recipe-stats-grid">
+        {[
+          { label: 'Costo total bandeja', value: formatCurrency(summary.batchCost) },
+          { label: `Unidades (${recipe.units_per_batch})`, value: formatCurrency(summary.unitCost), sub: 'por unidad' },
+          { label: 'Precio de venta', value: formatCurrency(summary.sellingPrice) },
+          { label: 'Ganancia total bandeja', value: formatCurrency(summary.totalProfit) },
+          { label: 'Ingresos totales', value: formatCurrency(summary.totalRevenue), sub: 'vendiendo todo' },
+        ].map((s) => <StatCard key={s.label} label={s.label} value={s.value} sub={s.sub} />)}
+      </div>
 
       {/* Precio editable */}
       {canManage && (
@@ -451,11 +449,13 @@ function RecipeDetail({ recipe, onBack, onDelete, onEdit, onRoundedPriceUpdate, 
           <CardBody>
             {recipe.has_partner ? (
               <div className="profit-breakdown">
-                <div className="profit-box profit-box-owner">
-                  <div className="profit-box-emoji">🧁</div>
-                  <div className="profit-box-name">Cecilia{!isPartner ? ' (mano de obra + mitad)' : ''}</div>
-                  {!isPartner && <div className="profit-box-amount">{formatCurrency(summary.ownerProfit)}</div>}
-                </div>
+                {!isPartner && (
+                  <div className="profit-box profit-box-owner">
+                    <div className="profit-box-emoji">🧁</div>
+                    <div className="profit-box-name">Cecilia (mano de obra + mitad)</div>
+                    <div className="profit-box-amount">{formatCurrency(summary.ownerProfit)}</div>
+                  </div>
+                )}
                 <div className="profit-box profit-box-partner">
                   <div className="profit-box-emoji">🤝</div>
                   <div className="profit-box-name">{recipe.profiles?.full_name ?? 'Socio'} (mitad)</div>

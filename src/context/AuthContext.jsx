@@ -62,6 +62,12 @@ export function AuthProvider({ children }) {
     [profile]
   );
 
+  const refreshProfile = useCallback(async () => {
+    if (!user) return;
+    const prof = await getProfile(user.id);
+    setProfile(prof);
+  }, [user]);
+
   const value = {
     user,
     profile,
@@ -73,6 +79,7 @@ export function AuthProvider({ children }) {
     signIn,
     signOut,
     hasPermission,
+    refreshProfile,
   };
 
   return (

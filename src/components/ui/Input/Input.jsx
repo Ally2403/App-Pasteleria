@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react';
 import './Input.css';
 
 /**
@@ -78,6 +79,85 @@ export function Textarea({ error, className = '', ...props }) {
       className={`input textarea ${error ? 'input-error' : ''} ${className}`}
       {...props}
     />
+  );
+}
+
+/**
+ * Selector con buscador integrado.
+ */
+export function SearchableSelect({
+  options = [],
+  value,
+  onChange,
+  placeholder = 'Buscar...',
+  error,
+  className = ''
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const wrapperRef = useRef(null);
+
+  const selectedOption = options.find((opt) => String(opt.value) === String(value));
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSearch(selectedOption ? selectedOption.label : '');
+    }
+  }, [value, selectedOption, isOpen]);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredOptions = options.filter((opt) =>
+    (opt.label ?? '').toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleSelect = (option) => {
+    onChange({ target: { value: option.value } });
+    setSearch(option.label);
+    setIsOpen(false);
+  };
+
+  const handleFocus = () => {
+    setIsOpen(true);
+    setSearch('');
+  };
+
+  return (
+    <div ref={wrapperRef} className={`searchable-select-wrapper ${className}`}>
+      <input
+        type="text"
+        className={`input searchable-select-input ${error ? 'input-error' : ''}`}
+        placeholder={placeholder}
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        onFocus={handleFocus}
+      />
+      {isOpen && (
+        <ul className="searchable-select-dropdown">
+          {filteredOptions.length === 0 ? (
+            <li className="searchable-select-no-results">Sin resultados</li>
+          ) : (
+            filteredOptions.map((opt) => (
+              <li
+                key={opt.value}
+                className={`searchable-select-option ${String(opt.value) === String(value) ? 'selected' : ''}`}
+                onClick={() => handleSelect(opt)}
+              >
+                {opt.label}
+              </li>
+            ))
+          )}
+        </ul>
+      )}
+    </div>
   );
 }
 

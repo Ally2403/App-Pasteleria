@@ -5,7 +5,7 @@ import { registerProduction, getProductionLogs, deleteProduction } from '../../s
 import { formatCurrency, formatQuantity, formatDateTime } from '../../utils/formatters';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { Select, Textarea, Input, Field } from '../../components/ui/Input';
+import { Select, Textarea, Input, Field, SearchableSelect } from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Badge from '../../components/ui/Badge';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
@@ -214,17 +214,18 @@ export default function ProductionPage() {
 
       <div className="production-recipe-select-card">
         <Field label="Selecciona la receta a preparar">
-          <Select
+          <SearchableSelect
             value={selectedRecipeId}
             onChange={(e) => setSelectedRecipeId(e.target.value)}
-          >
-            <option value="">-- Elige una receta --</option>
-            {recipes.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name} ({r.units_per_batch} unid/bandeja)
-              </option>
-            ))}
-          </Select>
+            options={[
+              { value: '', label: '-- Elige una receta --' },
+              ...recipes.map((r) => ({
+                value: r.id,
+                label: `${r.name} (${r.units_per_batch} unid/bandeja)`,
+              })),
+            ]}
+            placeholder="Buscar receta..."
+          />
         </Field>
 
         {loadingRecipe && (

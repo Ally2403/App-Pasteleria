@@ -4,7 +4,7 @@ import { getIngredients, addToInventory } from '../../services/ingredients.servi
 import { formatQuantity } from '../../utils/formatters';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { Select, Input, Field } from '../../components/ui/Input';
+import { Select, Input, Field, SearchableSelect } from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import './ShoppingPage.css';
@@ -301,17 +301,18 @@ export default function ShoppingPage() {
           <label style={{ fontWeight: 'bold', color: 'var(--color-text-primary)' }}>
             Selecciona la receta que quieres preparar
           </label>
-          <Select
+          <SearchableSelect
             value={selectedRecipeId}
             onChange={(e) => setSelectedRecipeId(e.target.value)}
-          >
-            <option value="">-- Elige una receta --</option>
-            {recipes.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name} ({r.units_per_batch} unidades)
-              </option>
-            ))}
-          </Select>
+            options={[
+              { value: '', label: '-- Elige una receta --' },
+              ...recipes.map((r) => ({
+                value: r.id,
+                label: `${r.name} (${r.units_per_batch} unidades)`,
+              })),
+            ]}
+            placeholder="Buscar receta..."
+          />
         </div>
 
         {loadingRecipe && (
@@ -503,17 +504,18 @@ export default function ShoppingPage() {
             <h4>➕ ¿Compraste algo más que no estaba en la receta?</h4>
             <div className="extra-form-grid">
               <div style={{ flex: 2 }}>
-                <Select
+                <SearchableSelect
                   value={extraIngredientId}
                   onChange={(e) => setExtraIngredientId(e.target.value)}
-                >
-                  <option value="">-- Selecciona un ingrediente --</option>
-                  {allIngredients.map((ing) => (
-                    <option key={ing.id} value={ing.id}>
-                      {ing.name} ({ing.unit}) — {ing.provider || 'Sin Proveedor'}
-                    </option>
-                  ))}
-                </Select>
+                  options={[
+                    { value: '', label: '-- Selecciona un ingrediente --' },
+                    ...allIngredients.map((ing) => ({
+                      value: ing.id,
+                      label: `${ing.name} (${ing.unit}) — ${ing.provider || 'Sin Proveedor'}`,
+                    })),
+                  ]}
+                  placeholder="Buscar ingrediente extra..."
+                />
               </div>
               <div style={{ width: '130px' }}>
                 <Input

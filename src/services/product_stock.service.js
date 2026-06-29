@@ -4,6 +4,7 @@
  */
 import { supabase } from './supabase';
 
+
 /**
  * Obtiene el stock actual de todos los productos terminados.
  * @returns {Promise<Array>}
@@ -121,4 +122,68 @@ export async function getProductStockAdjustments(recipeId) {
     .order('created_at', { ascending: false });
   if (error) throw error;
   return data ?? [];
+}
+
+/**
+ * Obtiene el stock actual de todos los productos terminados,
+ * incluyendo cuántas unidades hay "por hacer" en pedidos pendientes.
+ * Devuelve un array con: available_units (listos ahora), pending_units (en pedidos abiertos).
+ */
+export async function getProductStockWithPending() {
+  // Stock actual
+  const { data: stocks, error: stockError } = await supabase
+    .from('product_stock')
+    .select(`
+      *,
+      recipes ( id, name, units_per_batch )
+    `)
+    .order('updated_at', { ascending: false });
+  if (stockError) throw stockError;
+
+  // Pedidos pendientes: sale_items de ventas con status='pending'
+  const pendingByRecipe = {};
+  
+  try {
+    const { data: pendingItems, error: pendingError } = await supabase
+      .from('sale_items')
+      .select(`
+        recipe_id, quantity,
+        sales!inner ( status, sale_type )
+      `)
+      .eq('sales.status', 'pending')
+      .eq('sales.sale_type', 'order');
+
+    if (!pendingError && pendingItems) {
+      pendingItems.forEach((item) => {
+        if (!pendingByRecipe[item.recipe_id]) pendingByRecipe[item.recipe_id] = 0;
+        pendingByRecipe[item.recipe_id] += item.quantity;
+      });
+    } else if (pendingError) {
+      console.warn("Advertencia en pedidos pendientes (verifica si ejecutaste supabase_schema_v4.sql):", pendingError);
+    }
+  } catch (err) {
+    console.error("Error al consultar unidades pendientes:", err);
+  }
+
+  // Combinar stock actual con pendientes
+  const result = (stocks ?? []).map((stock) => ({
+    ...stock,
+    pending_units: pendingByRecipe[stock.recipe_id] ?? 0,
+  }));
+
+  // Agregar recetas que sólo tienen pedidos pero sin stock registrado aún
+  const recipeIdsInStock = new Set(result.map((s) => s.recipe_id));
+  for (const [recipeId, pendingQty] of Object.entries(pendingByRecipe)) {
+    if (!recipeIdsInStock.has(recipeId)) {
+      result.push({
+        id: null,
+        recipe_id: recipeId,
+        available_units: 0,
+        pending_units: pendingQty,
+        recipes: null, // se llenará en la UI si es necesario
+      });
+    }
+  }
+
+  return result;
 }

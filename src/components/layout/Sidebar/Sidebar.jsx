@@ -30,6 +30,7 @@ const NAV_ITEMS = [
   {
     section: 'Configuración',
     items: [
+      { to: '/perfil',       icon: '👤', label: 'Mi Perfil',     permission: null },
       { to: '/proveedores',  icon: '🏪', label: 'Proveedores',   permission: PERMISSIONS.VIEW_PROVIDERS },
       { to: '/costos-extra', icon: '💸', label: 'Otros Costos',   permission: PERMISSIONS.VIEW_EXTRA_COST_ITEMS },
     ],
