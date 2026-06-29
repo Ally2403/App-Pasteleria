@@ -183,22 +183,35 @@ export default function ShoppingPage() {
       return;
     }
 
-    const moneySpent = parseFloat(purchaseTotalSpent);
-    if (isNaN(moneySpent) || moneySpent <= 0) {
-      setNotification({ message: 'Por favor ingresa un total de dinero gastado válido mayor a 0.', type: 'warning' });
-      return;
+    // Para ingredientes, el usuario ingresa el monto manualmente.
+    // Para empaques, lo calculamos automáticamente del precio × paquetes.
+    let moneySpent = 0;
+    if (purchaseCategory === 'ingredients') {
+      moneySpent = parseFloat(purchaseTotalSpent);
+      if (isNaN(moneySpent) || moneySpent <= 0) {
+        setNotification({ message: 'Por favor ingresa un total de dinero gastado válido mayor a 0.', type: 'warning' });
+        return;
+      }
+    } else {
+      // Empaques: calcular automáticamente
+      activePurchases.forEach(item => {
+        const packs = item.quantitySold > 0 ? Math.ceil(item.quantityToRegister / item.quantitySold) : 1;
+        moneySpent += packs * (item.packagePrice || 0);
+      });
     }
 
     setSavingPurchase(true);
 
     try {
-      // 1. Guardar el Egreso Financiero en la base de datos
-      await addIngredientPurchase({
-        purchase_date: new Date().toISOString().split('T')[0],
-        total_spent: moneySpent,
-        category: purchaseCategory,
-        notes: purchaseNotes || `Compra automática registrada desde la lista de compras`
-      });
+      // 1. Guardar el Egreso Financiero (si hay monto > 0)
+      if (moneySpent > 0) {
+        await addIngredientPurchase({
+          purchase_date: new Date().toISOString().split('T')[0],
+          total_spent: moneySpent,
+          category: purchaseCategory,
+          notes: purchaseNotes || `Compra automática registrada desde la lista de compras`
+        });
+      }
 
       // 2. Incrementar el stock correspondiente en la base de datos
       if (purchaseCategory === 'ingredients') {
@@ -219,7 +232,10 @@ export default function ShoppingPage() {
       
       setIsPurchaseModalOpen(false);
       await refreshIngredientsOnly();
-      setNotification({ message: `¡Inventario y finanzas actualizados correctamente! Se registró un egreso de ${formatCurrency(moneySpent)}. 🎉`, type: 'success' });
+      const msg = purchaseCategory === 'packaging'
+        ? `¡Stock de empaques actualizado! Se registró un egreso automático de ${formatCurrency(moneySpent)}. 📦`
+        : `¡Inventario y finanzas actualizados! Se registró un egreso de ${formatCurrency(moneySpent)}. 🎉`;
+      setNotification({ message: msg, type: 'success' });
     } catch (err) {
       console.error('Error al registrar compras:', err);
       setNotification({ message: `Hubo un error al registrar las compras: ${err.message || err}`, type: 'error' });
@@ -732,31 +748,38 @@ export default function ShoppingPage() {
         }
       >
         <div className="shopping-modal-content">
-          <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-4)' }}>
-            Marca los elementos comprados y escribe la cantidad exacta para sumarla automáticamente al inventario. Además, se registrará el dinero gastado como egreso del negocio.
-          </p>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', marginBottom: 'var(--space-4)', background: 'var(--color-warm-50)', padding: 'var(--space-3)', borderRadius: 'var(--radius-lg)' }}>
-            <Field label="Total Dinero Gastado ($) *">
-              <Input
-                type="number"
-                min="0"
-                step="any"
-                required
-                placeholder="Ej: 45000"
-                value={purchaseTotalSpent}
-                onChange={(e) => setPurchaseTotalSpent(e.target.value)}
-              />
-            </Field>
-            <Field label="Notas / Proveedor de la compra">
-              <Input
-                type="text"
-                placeholder="Ej: Compras en Distribuidora El Panal"
-                value={purchaseNotes}
-                onChange={(e) => setPurchaseNotes(e.target.value)}
-              />
-            </Field>
-          </div>
+          {purchaseCategory === 'packaging' ? (
+            <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-4)' }}>
+              📦 Marca los empaques que compraste e ingresa la cantidad recibida. El costo se calculará automáticamente y se registrará como egreso.
+            </p>
+          ) : (
+            <>
+              <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-3)' }}>
+                🛒 Marca los ingredientes comprados, ingresa la cantidad recibida y el total real que pagaste.
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', marginBottom: 'var(--space-4)', background: 'var(--color-warm-50)', padding: 'var(--space-3)', borderRadius: 'var(--radius-lg)' }}>
+                <Field label="Total Dinero Gastado ($) *">
+                  <Input
+                    type="number"
+                    min="0"
+                    step="any"
+                    required
+                    placeholder="Ej: 45000"
+                    value={purchaseTotalSpent}
+                    onChange={(e) => setPurchaseTotalSpent(e.target.value)}
+                  />
+                </Field>
+                <Field label="Notas / Proveedor de la compra">
+                  <Input
+                    type="text"
+                    placeholder="Ej: Compras en Distribuidora El Panal"
+                    value={purchaseNotes}
+                    onChange={(e) => setPurchaseNotes(e.target.value)}
+                  />
+                </Field>
+              </div>
+            </>
+          )}
 
           {/* Lista de compras a registrar */}
           <div className="shopping-purchase-list">

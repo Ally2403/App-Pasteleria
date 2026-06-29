@@ -23,7 +23,7 @@ export default function ExtraCostsPage() {
   const [items, setItems] = useState([]);
   const [providers, setProviders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState('');;
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -31,6 +31,11 @@ export default function ExtraCostsPage() {
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [showProviderSuggestions, setShowProviderSuggestions] = useState(false);
+
+  // Stock adjustment modal
+  const [stockTarget, setStockTarget] = useState(null); // item whose stock we're editing
+  const [stockValue, setStockValue] = useState('');
+  const [savingStock, setSavingStock] = useState(false);
 
   const loadItems = async () => {
     setLoading(true);
@@ -67,6 +72,27 @@ export default function ExtraCostsPage() {
     });
     setErrors({});
     setModalOpen(true);
+  };
+
+  const openStockEdit = (item) => {
+    setStockTarget(item);
+    setStockValue(String(item.current_stock ?? 0));
+  };
+
+  const handleSaveStock = async () => {
+    if (!stockTarget) return;
+    const newStock = parseFloat(stockValue);
+    if (isNaN(newStock) || newStock < 0) return;
+    setSavingStock(true);
+    try {
+      await updateExtraCostItem(stockTarget.id, { current_stock: newStock });
+      setStockTarget(null);
+      await loadItems();
+    } catch (err) {
+      console.error('Error al actualizar stock:', err);
+    } finally {
+      setSavingStock(false);
+    }
   };
 
   const validate = () => {
@@ -113,6 +139,10 @@ export default function ExtraCostsPage() {
     item.name.toLowerCase().includes(search.toLowerCase())
   );
 
+  // Separar items por si tienen inventario físico o no
+  const physicalItems = filtered.filter(i => i.has_inventory);
+  const nonPhysicalItems = filtered.filter(i => !i.has_inventory);
+
   return (
     <div className="app-content animate-fade-in">
       <div className="page-header">
@@ -152,57 +182,211 @@ export default function ExtraCostsPage() {
           )}
         </div>
       ) : (
-        <div className="extra-costs-layout-grid-custom">
-          {filtered.map((item) => (
-            <Card hoverable key={item.id} className="extra-cost-card animate-fade-in-up">
-              <CardBody className="extra-cost-card-body">
-                <div className="extra-cost-main-info">
-                  <span className="extra-cost-icon">💸</span>
-                  <div className="extra-cost-details">
-                    <span className="extra-cost-name">{item.name}</span>
-                    {item.provider && (
-                      <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
-                        🏪 {item.provider}
-                      </span>
-                    )}
-                    <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', marginTop: '2px', flexWrap: 'wrap' }}>
-                      <Badge variant="neutral" style={{ fontSize: 'var(--font-size-xs)' }}>
-                        {getExtraCostTypeLabel(item.type)}
-                      </Badge>
-                      <span className="extra-cost-price">{formatCurrency(item.unit_price)}/ud</span>
-                      <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
-                        ({item.quantity_sold} ud × {formatCurrency(item.price ?? item.unit_price * item.quantity_sold)})
-                      </span>
-                    </div>
-                  </div>
+        <>
+          {/* ── Sección de empaques con inventario físico ── */}
+          {physicalItems.length > 0 && (
+            <div style={{ marginBottom: 'var(--space-6)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
+                <h2 style={{ margin: 0, fontSize: 'var(--font-size-lg)', color: 'var(--color-text-primary)' }}>
+                  📦 Empaques / Materiales Físicos
+                </h2>
+                <Badge variant="info">Con inventario</Badge>
+              </div>
+              <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)', marginBottom: 'var(--space-4)', marginTop: 0 }}>
+                Estos items tienen stock físico. Puedes ajustar el stock actual directamente desde aquí.
+              </p>
+              <div className="extra-costs-layout-grid-custom">
+                {physicalItems.map((item) => {
+                  const stockLow = (item.current_stock ?? 0) < (item.quantity_sold ?? 1);
+                  return (
+                    <Card hoverable key={item.id} className="extra-cost-card animate-fade-in-up" style={{
+                      borderLeft: stockLow ? '3px solid var(--color-warning)' : '3px solid var(--color-success)'
+                    }}>
+                      <CardBody className="extra-cost-card-body">
+                        <div className="extra-cost-main-info">
+                          <span className="extra-cost-icon">📦</span>
+                          <div className="extra-cost-details">
+                            <span className="extra-cost-name">{item.name}</span>
+                            {item.provider && (
+                              <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
+                                🏪 {item.provider}
+                              </span>
+                            )}
+                            <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', marginTop: '2px', flexWrap: 'wrap' }}>
+                              <Badge variant="neutral" style={{ fontSize: 'var(--font-size-xs)' }}>
+                                {getExtraCostTypeLabel(item.type)}
+                              </Badge>
+                              <span className="extra-cost-price">{formatCurrency(item.unit_price)}/ud</span>
+                              <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
+                                ({item.quantity_sold} ud × {formatCurrency(item.price ?? item.unit_price * item.quantity_sold)})
+                              </span>
+                            </div>
+                            {/* Stock actual */}
+                            <div style={{ marginTop: 'var(--space-2)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                              <span style={{
+                                fontSize: 'var(--font-size-sm)',
+                                fontWeight: 'bold',
+                                color: stockLow ? 'var(--color-warning)' : 'var(--color-success)',
+                                background: stockLow ? '#fef3c7' : '#dcfce7',
+                                borderRadius: 'var(--radius-md)',
+                                padding: '2px 8px'
+                              }}>
+                                {stockLow ? '⚠️' : '✅'} Stock: {item.current_stock ?? 0} unid
+                              </span>
+                              {stockLow && (
+                                <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-warning)' }}>
+                                  Bajo — necesitas comprar
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="extra-cost-actions">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openStockEdit(item)}
+                            title="Ajustar stock"
+                            style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-primary)' }}
+                          >
+                            📊 Stock
+                          </Button>
+                          {isAdmin && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                icon
+                                onClick={() => openEdit(item)}
+                                title="Editar"
+                              >
+                                ✏️
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                icon
+                                onClick={() => setDeleteTarget(item)}
+                                title="Eliminar"
+                              >
+                                🗑️
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </CardBody>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ── Sección de costos no físicos ── */}
+          {nonPhysicalItems.length > 0 && (
+            <div>
+              {physicalItems.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
+                  <h2 style={{ margin: 0, fontSize: 'var(--font-size-lg)', color: 'var(--color-text-primary)' }}>
+                    💡 Servicios y Mano de Obra
+                  </h2>
+                  <Badge variant="neutral">Sin inventario</Badge>
                 </div>
-                {isAdmin && (
-                  <div className="extra-cost-actions">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      icon
-                      onClick={() => openEdit(item)}
-                      title="Editar"
-                    >
-                      ✏️
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      icon
-                      onClick={() => setDeleteTarget(item)}
-                      title="Eliminar"
-                    >
-                      🗑️
-                    </Button>
-                  </div>
-                )}
-              </CardBody>
-            </Card>
-          ))}
-        </div>
+              )}
+              <div className="extra-costs-layout-grid-custom">
+                {nonPhysicalItems.map((item) => (
+                  <Card hoverable key={item.id} className="extra-cost-card animate-fade-in-up">
+                    <CardBody className="extra-cost-card-body">
+                      <div className="extra-cost-main-info">
+                        <span className="extra-cost-icon">💸</span>
+                        <div className="extra-cost-details">
+                          <span className="extra-cost-name">{item.name}</span>
+                          {item.provider && (
+                            <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
+                              🏪 {item.provider}
+                            </span>
+                          )}
+                          <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', marginTop: '2px', flexWrap: 'wrap' }}>
+                            <Badge variant="neutral" style={{ fontSize: 'var(--font-size-xs)' }}>
+                              {getExtraCostTypeLabel(item.type)}
+                            </Badge>
+                            <span className="extra-cost-price">{formatCurrency(item.unit_price)}/ud</span>
+                            <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
+                              ({item.quantity_sold} ud × {formatCurrency(item.price ?? item.unit_price * item.quantity_sold)})
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      {isAdmin && (
+                        <div className="extra-cost-actions">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon
+                            onClick={() => openEdit(item)}
+                            title="Editar"
+                          >
+                            ✏️
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon
+                            onClick={() => setDeleteTarget(item)}
+                            title="Eliminar"
+                          >
+                            🗑️
+                          </Button>
+                        </div>
+                      )}
+                    </CardBody>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
+
+      {/* Modal: Ajustar Stock de Empaque */}
+      <Modal
+        isOpen={!!stockTarget}
+        onClose={() => setStockTarget(null)}
+        title={`📊 Ajustar Stock — ${stockTarget?.name}`}
+        size="sm"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setStockTarget(null)}>
+              Cancelar
+            </Button>
+            <Button variant="primary" loading={savingStock} onClick={handleSaveStock}>
+              Guardar Stock
+            </Button>
+          </>
+        }
+      >
+        <div style={{ padding: 'var(--space-2)' }}>
+          <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-4)' }}>
+            Ingresa la cantidad actual disponible de <strong>{stockTarget?.name}</strong> en tu inventario físico.
+          </p>
+          <Field label="Stock actual (unidades físicas disponibles)">
+            <Input
+              type="number"
+              min="0"
+              step="any"
+              autoFocus
+              placeholder="Ej: 50"
+              value={stockValue}
+              onChange={(e) => setStockValue(e.target.value)}
+            />
+          </Field>
+          {stockTarget && (
+            <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', marginTop: 'var(--space-2)' }}>
+              Stock actual registrado: <strong>{stockTarget.current_stock ?? 0} unid</strong>
+            </p>
+          )}
+        </div>
+      </Modal>
 
       {/* Modal: Registrar/Editar */}
       <Modal
