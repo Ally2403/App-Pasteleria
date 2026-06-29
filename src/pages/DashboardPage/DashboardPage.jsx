@@ -454,7 +454,8 @@ export default function DashboardPage() {
           <UpcomingDeliveriesSection deliveries={upcomingDeliveries} navigate={navigate} />
 
           <div className="dashboard-row">
-            {/* Sales by Product */}            <Card style={{ flex: 2 }}>
+            {/* Sales by Product */}
+            <Card style={{ flex: 2 }}>
               <CardHeader>
                 <h3>📈 Ventas por Producto ({periodLabel})</h3>
               </CardHeader>
@@ -663,7 +664,8 @@ export default function DashboardPage() {
           <UpcomingDeliveriesSection deliveries={upcomingDeliveries} navigate={navigate} />
 
           <div className="dashboard-row" style={{ marginTop: 'var(--space-4)' }}>
-            {/* Jhon's recipes and profit splits */}            <Card style={{ flex: 1.5 }}>
+            {/* Jhon's recipes and profit splits */}
+            <Card style={{ flex: 1.5 }}>
               <CardHeader>
                 <h3>🍰 Mis Recetas y Ganancia por Unidad</h3>
               </CardHeader>
