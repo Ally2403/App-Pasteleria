@@ -278,7 +278,7 @@ export default function IngredientsPage() {
   const filtered = useMemo(() =>
     ingredients.filter((i) =>
       i.name.toLowerCase().includes(search.toLowerCase()) ||
-      i.provider.toLowerCase().includes(search.toLowerCase())
+      (i.provider || '').toLowerCase().includes(search.toLowerCase())
     ), [ingredients, search]);
 
   const handleSave = async (formData) => {

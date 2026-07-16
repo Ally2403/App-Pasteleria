@@ -415,11 +415,11 @@ export default function ExtraCostsPage() {
                 iconLeft="🏪"
               />
               {showProviderSuggestions && providers.filter(p =>
-                p.name.toLowerCase().includes((form.provider ?? '').toLowerCase())
+                (p.name || '').toLowerCase().includes((form.provider ?? '').toLowerCase())
               ).length > 0 && (
                 <div className="provider-suggestions-dropdown">
                   {providers
-                    .filter(p => p.name.toLowerCase().includes((form.provider ?? '').toLowerCase()))
+                    .filter(p => (p.name || '').toLowerCase().includes((form.provider ?? '').toLowerCase()))
                     .map((p) => (
                       <div
                         key={p.id}
