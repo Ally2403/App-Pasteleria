@@ -290,7 +290,7 @@ CREATE TABLE product_stock_adjustments (
   quantity_change  INTEGER NOT NULL,
   reason           TEXT NOT NULL,
   notes            TEXT,
-  created_by       UUID REFERENCES auth.users(id),
+  created_by       UUID REFERENCES profiles(id),
   created_at       TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -315,7 +315,7 @@ CREATE TABLE sales (
   status          TEXT NOT NULL DEFAULT 'completed',
   notes           TEXT,
   total           NUMERIC(12, 2) NOT NULL DEFAULT 0,
-  created_by      UUID REFERENCES auth.users(id),
+  created_by      UUID REFERENCES profiles(id),
   created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -357,7 +357,7 @@ CREATE TABLE ingredient_purchases (
   total_spent    NUMERIC(12, 2) NOT NULL DEFAULT 0,
   category       TEXT NOT NULL DEFAULT 'ingredients',
   notes          TEXT,
-  created_by     UUID REFERENCES auth.users(id),
+  created_by     UUID REFERENCES profiles(id),
   created_at     TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -379,7 +379,7 @@ CREATE TABLE other_purchases (
   category       TEXT,
   purchase_date  DATE NOT NULL DEFAULT CURRENT_DATE,
   notes          TEXT,
-  created_by     UUID REFERENCES auth.users(id),
+  created_by     UUID REFERENCES profiles(id),
   created_at     TIMESTAMPTZ DEFAULT NOW()
 );
 

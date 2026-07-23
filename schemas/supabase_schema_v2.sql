@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS product_stock_adjustments (
   quantity_change INTEGER NOT NULL, -- positivo = entrada, negativo = salida
   reason        TEXT NOT NULL, -- 'production', 'sale', 'damage', 'consumption', 'other'
   notes         TEXT,
-  created_by    UUID REFERENCES auth.users(id),
+  created_by    UUID REFERENCES profiles(id),
   created_at    TIMESTAMPTZ DEFAULT now()
 );
 
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS sales (
   status          TEXT NOT NULL DEFAULT 'completed', -- 'pending', 'completed'
   notes           TEXT,
   total           NUMERIC(12, 2) NOT NULL DEFAULT 0,
-  created_by      UUID REFERENCES auth.users(id),
+  created_by      UUID REFERENCES profiles(id),
   created_at      TIMESTAMPTZ DEFAULT now()
 );
 

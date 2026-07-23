@@ -72,6 +72,14 @@ describe('formatters.js unit tests', () => {
       expect(formatted).toContain('junio');
       expect(formatted).toContain('2026');
     });
+
+    it('should prevent timezone shift for YYYY-MM-DD date strings', () => {
+      const dateStr = '2026-07-28';
+      const formatted = formatDate(dateStr);
+      expect(formatted).toContain('28');
+      expect(formatted).toContain('julio');
+      expect(formatted).toContain('2026');
+    });
   });
 
   describe('formatDateTime', () => {

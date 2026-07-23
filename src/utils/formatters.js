@@ -112,11 +112,22 @@ export function getExtraCostTypeLabel(type) {
  */
 export function formatDate(date) {
   if (!date) return '';
+  let parsedDate;
+  if (typeof date === 'string') {
+    // Si es formato YYYY-MM-DD, reemplazar "-" por "/" para evitar desfase de zona horaria en JS
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      parsedDate = new Date(date.replace(/-/g, '/'));
+    } else {
+      parsedDate = new Date(date);
+    }
+  } else {
+    parsedDate = date;
+  }
   return new Intl.DateTimeFormat('es-CO', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-  }).format(new Date(date));
+  }).format(parsedDate);
 }
 
 /**
